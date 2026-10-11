@@ -28,7 +28,7 @@ ScribeCrate Live представляет собой сервер транскр
 **Также доступно:**
 
 - Попробовать онлайн: [Открыть в Colab](https://selfhostedaistack.com/scribecrate-live-notebook) — Docker и установка не требуются
-- Связанные AI-сервисы: [ScribeCrate](https://github.com/hwdsl2/scribecrate/blob/main/README-ru.md), [SpeakCrate](https://github.com/hwdsl2/speakcrate/blob/main/README-ru.md), [EmbedCrate](https://github.com/hwdsl2/embedcrate/blob/main/README-ru.md), [GatewayCrate](https://github.com/hwdsl2/gatewaycrate/blob/main/README-ru.md), [InferCrate](https://github.com/hwdsl2/infercrate/blob/main/README-ru.md), [ParseCrate](https://github.com/hwdsl2/parsecrate/blob/main/README-ru.md), [ToolUplink](https://github.com/hwdsl2/tooluplink/blob/main/README-ru.md)
+- Связанные AI-сервисы: [ScribeCrate](https://github.com/hwdsl2/scribecrate/blob/main/README-ru.md), [SpeakCrate](https://github.com/hwdsl2/speakcrate/blob/main/README-ru.md), [EmbedCrate](https://github.com/hwdsl2/embedcrate/blob/main/README-ru.md), [GatewayCrate](https://github.com/hwdsl2/gatewaycrate/blob/main/README-ru.md), [InferCrate](https://github.com/hwdsl2/infercrate/blob/main/README-ru.md), [ParseCrate](https://github.com/hwdsl2/parsecrate/blob/main/README-ru.md), [UplinkCrate](https://github.com/hwdsl2/uplinkcrate/blob/main/README-ru.md)
 
 ## Быстрый старт
 
@@ -640,7 +640,7 @@ docker rm -f whisper-live
 
 ScribeCrate Live можно использовать как службу распознавания речи в реальном времени в более широком self-hosted AI-стеке.
 
-Готовые полные и облегчённые стеки Docker Compose, примеры ручного запуска через `docker run`, а также примеры голосовых, RAG- и MCP-конвейеров с SpeakCrate, EmbedCrate, GatewayCrate, InferCrate, ParseCrate и ToolUplink см. в [Self-Hosted AI Stack](https://github.com/hwdsl2/self-hosted-ai-stack/blob/main/README-ru.md).
+Готовые полные и облегчённые стеки Docker Compose, примеры ручного запуска через `docker run`, а также примеры голосовых, RAG- и MCP-конвейеров с SpeakCrate, EmbedCrate, GatewayCrate, InferCrate, ParseCrate и UplinkCrate см. в [Self-Hosted AI Stack](https://github.com/hwdsl2/self-hosted-ai-stack/blob/main/README-ru.md).
 
 ## Счётчики использования
 

@@ -28,7 +28,7 @@ ScribeCrate Live 是一个自托管的实时语音转文字服务器，由 [Whis
 **另提供：**
 
 - 在线试用：[在 Colab 中打开](https://selfhostedaistack.com/scribecrate-live-notebook)——无需 Docker 或安装
-- 相关 AI 服务：[ScribeCrate](https://github.com/hwdsl2/scribecrate/blob/main/README-zh.md)、[SpeakCrate](https://github.com/hwdsl2/speakcrate/blob/main/README-zh.md)、[EmbedCrate](https://github.com/hwdsl2/embedcrate/blob/main/README-zh.md)、[GatewayCrate](https://github.com/hwdsl2/gatewaycrate/blob/main/README-zh.md)、[InferCrate](https://github.com/hwdsl2/infercrate/blob/main/README-zh.md)、[ParseCrate](https://github.com/hwdsl2/parsecrate/blob/main/README-zh.md)、[ToolUplink](https://github.com/hwdsl2/tooluplink/blob/main/README-zh.md)
+- 相关 AI 服务：[ScribeCrate](https://github.com/hwdsl2/scribecrate/blob/main/README-zh.md)、[SpeakCrate](https://github.com/hwdsl2/speakcrate/blob/main/README-zh.md)、[EmbedCrate](https://github.com/hwdsl2/embedcrate/blob/main/README-zh.md)、[GatewayCrate](https://github.com/hwdsl2/gatewaycrate/blob/main/README-zh.md)、[InferCrate](https://github.com/hwdsl2/infercrate/blob/main/README-zh.md)、[ParseCrate](https://github.com/hwdsl2/parsecrate/blob/main/README-zh.md)、[UplinkCrate](https://github.com/hwdsl2/uplinkcrate/blob/main/README-zh.md)
 
 ## 快速开始
 
@@ -677,7 +677,7 @@ docker rm -f whisper-live
 
 ScribeCrate Live 可作为更广泛的自托管 AI 设置中的实时语音转文字服务。
 
-如需完整和轻量级 Docker Compose 技术栈、手动 `docker run` 示例，以及结合 SpeakCrate、EmbedCrate、GatewayCrate、InferCrate、ParseCrate 和 ToolUplink 的语音/RAG/MCP 流水线示例，请参阅 [Self-Hosted AI Stack](https://github.com/hwdsl2/self-hosted-ai-stack/blob/main/README-zh.md)。
+如需完整和轻量级 Docker Compose 技术栈、手动 `docker run` 示例，以及结合 SpeakCrate、EmbedCrate、GatewayCrate、InferCrate、ParseCrate 和 UplinkCrate 的语音/RAG/MCP 流水线示例，请参阅 [Self-Hosted AI Stack](https://github.com/hwdsl2/self-hosted-ai-stack/blob/main/README-zh.md)。
 
 ## 使用计数
 
