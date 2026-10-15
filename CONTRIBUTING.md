@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for helping improve this project. This repository maintains the Docker image for WhisperLive; changes that only affect multi-service orchestration belong in [self-hosted-ai-stack](https://github.com/hwdsl2/self-hosted-ai-stack).
+Thanks for helping improve this project. This repository maintains ScribeCrate Live, the self-hosted transcription server powered by WhisperLive and faster-whisper; changes that only affect multi-service orchestration belong in [self-hosted-ai-stack](https://github.com/hwdsl2/self-hosted-ai-stack).
 
 ## Before You Start
 

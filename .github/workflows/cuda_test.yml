@@ -20,6 +20,10 @@ jobs:
           cd "$GITHUB_WORKSPACE"
           pwd
 
+          printf '::add-mask::test-whisperlive-cuda-key\n'
+          workflow_command_token=$(python3 -c 'import uuid; print(uuid.uuid4())')
+          trap 'set +x; printf "::%s::\n" "$workflow_command_token"' EXIT
+          printf '::stop-commands::%s\n' "$workflow_command_token"
           set -x
 
           docker build \
@@ -36,17 +40,17 @@ jobs:
             -v whisper-live-cuda-runtime-test-data:/var/lib/whisper-live \
             -e WHISPERLIVE_MODEL=tiny \
             -e WHISPERLIVE_API_KEY=test-whisperlive-cuda-key \
-            -p 9090:9090/tcp \
-            -p 8000:8000/tcp \
+            -p 127.0.0.1:9090:9090/tcp \
+            -p 127.0.0.1:8000:8000/tcp \
             -d whisper-live-cuda-test
 
           # Wait for REST server to be ready (up to 300 seconds)
           # /docs is exempt from auth and returns 200 once the server is up.
           i=0
           while [ "$i" -lt 300 ]; do
-            http_code=$(docker exec whisper-live-cuda-runtime-test curl -s -o /dev/null -w '%{http_code}' --max-time 2 \
+            http_code=$(docker exec whisper-live-cuda-runtime-test curl -q -s --noproxy '*' -o /dev/null -w '%{http_code}' --max-time 2 \
                 http://127.0.0.1:8000/docs 2>/dev/null || true)
-            if [ "$http_code" = "200" ] || [ "$http_code" = "401" ]; then
+            if [ "$http_code" = "200" ]; then
               break
             fi
             sleep 1
@@ -57,12 +61,12 @@ jobs:
           docker logs whisper-live-cuda-runtime-test
 
           # Verify REST API docs endpoint (public regardless of auth since WhisperLive 0.10.0)
-          curl -sf --max-time 5 http://127.0.0.1:8000/docs
+          curl -q -sf --noproxy '*' --max-time 5 http://127.0.0.1:8000/docs
 
           # Verify auth enforcement against a protected REST route.
           # /docs, /redoc, /openapi.json and /health are exempt from auth in WhisperLive 0.10.0,
           # so enforcement must be checked against /v1/audio/transcriptions instead.
-          http_code=$(curl -s -o /dev/null -w '%{http_code}' \
+          http_code=$(curl -q -s --noproxy '*' --max-time 5 -o /dev/null -w '%{http_code}' \
             -F model=whisper-1 \
             http://127.0.0.1:8000/v1/audio/transcriptions 2>/dev/null || true)
           [ "$http_code" = "401" ] || { echo "Expected 401 without key, got $http_code"; exit 1; }

@@ -8,9 +8,9 @@ assignees: ''
 ---
 **Checklist**
 
-- [ ] I read the [README](https://github.com/hwdsl2/docker-whisper-live/blob/main/README.md) or the relevant section
-- [ ] I searched existing [Issues](https://github.com/hwdsl2/docker-whisper-live/issues?q=is%3Aissue)
-- [ ] This issue is about the WhisperLive Docker image/config/API, not only WhisperLive or faster-whisper itself
+- [ ] I read the [README](https://github.com/hwdsl2/scribecrate-live/blob/main/README.md) or the relevant section
+- [ ] I searched existing [Issues](https://github.com/hwdsl2/scribecrate-live/issues?q=is%3Aissue)
+- [ ] This issue is about the ScribeCrate Live Docker image/config/API, not only WhisperLive or faster-whisper itself
 
 <!---
 If this is a bug in WhisperLive WebSocket/server behavior, it may belong in https://github.com/collabora/WhisperLive. If it is about model loading or transcription output, it may belong in https://github.com/SYSTRAN/faster-whisper.

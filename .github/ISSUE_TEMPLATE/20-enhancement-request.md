@@ -8,9 +8,9 @@ assignees: ''
 ---
 **Checklist**
 
-- [ ] I searched existing [Issues](https://github.com/hwdsl2/docker-whisper-live/issues?q=is%3Aissue), and did not find a similar enhancement request
-- [ ] I read the [README](https://github.com/hwdsl2/docker-whisper-live/blob/main/README.md) or the relevant section
-- [ ] This request is about the WhisperLive Docker image/config/API, not only WhisperLive or faster-whisper itself
+- [ ] I searched existing [Issues](https://github.com/hwdsl2/scribecrate-live/issues?q=is%3Aissue), and did not find a similar enhancement request
+- [ ] I read the [README](https://github.com/hwdsl2/scribecrate-live/blob/main/README.md) or the relevant section
+- [ ] This request is about the ScribeCrate Live Docker image/config/API, not only WhisperLive or faster-whisper itself
 
 **Describe the enhancement request**
 A clear and concise description of your enhancement request.

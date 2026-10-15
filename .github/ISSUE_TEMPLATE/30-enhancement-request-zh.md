@@ -8,9 +8,9 @@ assignees: ''
 ---
 **任务列表**
 
-- [ ] 我搜索了已有的 [Issues](https://github.com/hwdsl2/docker-whisper-live/issues?q=is%3Aissue)，没有找到类似的改进建议
-- [ ] 我已阅读[自述文件](https://github.com/hwdsl2/docker-whisper-live/blob/main/README-zh.md)或相关章节
-- [ ] 这个建议是关于 WhisperLive Docker 镜像/配置/API，而不只是 WhisperLive 或 faster-whisper 本身
+- [ ] 我搜索了已有的 [Issues](https://github.com/hwdsl2/scribecrate-live/issues?q=is%3Aissue)，没有找到类似的改进建议
+- [ ] 我已阅读[自述文件](https://github.com/hwdsl2/scribecrate-live/blob/main/README-zh.md)或相关章节
+- [ ] 这个建议是关于 ScribeCrate Live Docker 镜像/配置/API，而不只是 WhisperLive 或 faster-whisper 本身
 
 **描述改进建议**
 使用清楚简明的语言描述你的改进建议。

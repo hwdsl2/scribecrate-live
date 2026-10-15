@@ -27,6 +27,19 @@ jobs:
           pwd
           ls -ld whisper-live.env.example
 
+          test_dir=$(mktemp -d)
+          workflow_command_token=""
+          trap '
+            set +x
+            rm -rf -- "$test_dir" || true
+            if [ -n "$workflow_command_token" ]; then
+              printf "::%s::\n" "$workflow_command_token"
+            fi
+          ' EXIT
+          printf '::add-mask::test-whisperlive-key\n'
+          workflow_command_token=$(python3 -c 'import uuid; print(uuid.uuid4())')
+          printf '::stop-commands::%s\n' "$workflow_command_token"
+
           sed -i \
             -e '/WHISPERLIVE_LOG_LEVEL=/s/# //' \
             whisper-live.env.example
@@ -51,8 +64,8 @@ jobs:
               -v whisper-live-test-data:/var/lib/whisper-live \
               -v ./whisper-live.env.example:/whisper-live.env:ro \
               -e WHISPERLIVE_MODEL=tiny \
-              -p 9090:9090/tcp \
-              -p 8000:8000/tcp \
+              -p 127.0.0.1:9090:9090/tcp \
+              -p 127.0.0.1:8000:8000/tcp \
               -d whisper-live-test
           elif [ "$TEST_ID" = "no-env" ]; then
             docker run \
@@ -61,8 +74,8 @@ jobs:
               -e WHISPERLIVE_DISABLE_USAGE_COUNTS=1 \
               -v whisper-live-test-data:/var/lib/whisper-live \
               -e WHISPERLIVE_MODEL=tiny \
-              -p 9090:9090/tcp \
-              -p 8000:8000/tcp \
+              -p 127.0.0.1:9090:9090/tcp \
+              -p 127.0.0.1:8000:8000/tcp \
               -d whisper-live-test
           elif [ "$TEST_ID" = "with-key" ]; then
             docker run \
@@ -72,8 +85,8 @@ jobs:
               -v whisper-live-test-data:/var/lib/whisper-live \
               -e WHISPERLIVE_MODEL=tiny \
               -e WHISPERLIVE_API_KEY=test-whisperlive-key \
-              -p 9090:9090/tcp \
-              -p 8000:8000/tcp \
+              -p 127.0.0.1:9090:9090/tcp \
+              -p 127.0.0.1:8000:8000/tcp \
               -d whisper-live-test
           elif [ "$TEST_ID" = "empty-key" ]; then
             docker run \
@@ -83,8 +96,8 @@ jobs:
               -v whisper-live-test-data:/var/lib/whisper-live \
               -e WHISPERLIVE_MODEL=tiny \
               -e WHISPERLIVE_API_KEY= \
-              -p 9090:9090/tcp \
-              -p 8000:8000/tcp \
+              -p 127.0.0.1:9090:9090/tcp \
+              -p 127.0.0.1:8000:8000/tcp \
               -d whisper-live-test
           elif [ "$TEST_ID" = "existing-no-key" ]; then
             docker run \
@@ -93,8 +106,8 @@ jobs:
               -e WHISPERLIVE_DISABLE_USAGE_COUNTS=1 \
               -v whisper-live-test-data:/var/lib/whisper-live \
               -e WHISPERLIVE_MODEL=tiny \
-              -p 9090:9090/tcp \
-              -p 8000:8000/tcp \
+              -p 127.0.0.1:9090:9090/tcp \
+              -p 127.0.0.1:8000:8000/tcp \
               -d whisper-live-test
           fi
 
@@ -102,22 +115,17 @@ jobs:
           # /docs is exempt from auth and returns 200 once the server is up.
           i=0
           while [ "$i" -lt 300 ]; do
-            http_code=$(docker exec "$TEST_ID" curl -s -o /dev/null -w '%{http_code}' --max-time 2 \
+            http_code=$(docker exec "$TEST_ID" curl -q -s --noproxy '*' -o /dev/null -w '%{http_code}' --max-time 2 \
                 http://127.0.0.1:8000/docs 2>/dev/null || true)
-            if [ "$http_code" = "200" ] || [ "$http_code" = "401" ]; then
+            if [ "$http_code" = "200" ]; then
               break
             fi
             sleep 1
             i=$((i + 1))
           done
 
-          docker ps | grep "$TEST_ID"
-          docker logs "$TEST_ID"
-          if [ "$TEST_ID" = "existing-no-key" ]; then
-            docker logs "$TEST_ID" 2>&1 | grep -q 'Preserving no-auth behavior for backward compatibility'
-          fi
-
           # Build optional auth header args
+          set +x
           whisper_live_curl_args=()
           whisper_live_key=""
           if [ "$TEST_ID" = "with-key" ]; then
@@ -125,7 +133,7 @@ jobs:
             whisper_live_curl_args=(-H "Authorization: Bearer test-whisperlive-key")
           elif [ "$TEST_ID" = "empty-key" ] || [ "$TEST_ID" = "existing-no-key" ]; then
             whisper_live_key=$(docker exec "$TEST_ID" whisper_live_manage --getkey 2>/dev/null || true)
-            [ -z "$whisper_live_key" ] || { echo "Expected no WhisperLive API key, got $whisper_live_key"; exit 1; }
+            [ -z "$whisper_live_key" ] || { echo "Expected no WhisperLive API key"; exit 1; }
             docker exec "$TEST_ID" test ! -f /var/lib/whisper-live/.api_key
             docker exec "$TEST_ID" test ! -f /var/lib/whisper-live/.auto_api_key_created
           else
@@ -134,21 +142,38 @@ jobs:
             docker exec "$TEST_ID" test -f /var/lib/whisper-live/.auto_api_key_created
             whisper_live_curl_args=(-H "Authorization: Bearer $whisper_live_key")
           fi
+          printf '::%s::\n' "$workflow_command_token"
+          if [ -n "$whisper_live_key" ]; then
+            mask_value=${whisper_live_key//'%'/'%25'}
+            mask_value=${mask_value//$'\r'/'%0D'}
+            mask_value=${mask_value//$'\n'/'%0A'}
+            printf '::add-mask::%s\n' "$mask_value"
+          fi
+          # Treat subsequent container output and response bodies as plain log text.
+          workflow_command_token=$(python3 -c 'import uuid; print(uuid.uuid4())')
+          printf '::stop-commands::%s\n' "$workflow_command_token"
+          set -x
+
+          docker ps | grep "$TEST_ID"
+          docker logs "$TEST_ID"
+          if [ "$TEST_ID" = "existing-no-key" ]; then
+            docker logs "$TEST_ID" 2>&1 | grep -q 'Preserving no-auth behavior for backward compatibility'
+          fi
 
           # Verify REST API docs endpoint (public regardless of auth since WhisperLive 0.10.0)
-          docker exec "$TEST_ID" curl -sf --max-time 5 http://127.0.0.1:8000/docs
+          docker exec "$TEST_ID" curl -q -sf --noproxy '*' --max-time 5 http://127.0.0.1:8000/docs
 
           if [ "${#whisper_live_curl_args[@]}" -gt 0 ]; then
             # Verify auth enforcement against a protected REST route.
             # /docs, /redoc, /openapi.json and /health are exempt from auth in WhisperLive 0.10.0,
             # so enforcement must be checked against /v1/audio/transcriptions instead.
-            http_code=$(curl -s -o /dev/null -w '%{http_code}' \
+            http_code=$(curl -q -s --noproxy '*' --max-time 5 -o /dev/null -w '%{http_code}' \
               -F model=whisper-1 \
               http://127.0.0.1:8000/v1/audio/transcriptions 2>/dev/null || true)
             [ "$http_code" = "401" ] || { echo "Expected 401 without key, got $http_code"; exit 1; }
           else
             # Explicit empty keys and existing no-key volumes preserve no-auth behavior.
-            curl -sf --max-time 5 http://127.0.0.1:8000/docs >/dev/null
+            curl -q -sf --noproxy '*' --max-time 5 http://127.0.0.1:8000/docs >/dev/null
           fi
 
           # Exercise real WebSocket handshakes against the production callback.
@@ -178,25 +203,59 @@ jobs:
             sudo apt-get -yqq update
             sudo apt-get -yqq install ffmpeg
           fi
-          ffmpeg -y -f lavfi -i "sine=frequency=440:duration=1" -ar 16000 -ac 1 /tmp/test.wav
+          ffmpeg -y -f lavfi -i "sine=frequency=440:duration=1" -ar 16000 -ac 1 "$test_dir/test.wav"
 
           # Test transcription endpoint (json response).
           # The first request triggers model download (tiny ~75 MB); retry for up to 300 seconds.
-          i=0
-          while [ "$i" -lt 300 ]; do
-            if curl -sf --max-time 30 http://127.0.0.1:8000/v1/audio/transcriptions \
+          set +x
+          response_file="$test_dir/response.json"
+          curl_error_file="$test_dir/curl-error.txt"
+          transcription_started=$SECONDS
+          transcription_deadline=$((transcription_started + 300))
+          transcription_ok=false
+          while [ "$SECONDS" -lt "$transcription_deadline" ]; do
+            remaining=$((transcription_deadline - SECONDS))
+            [ "$remaining" -gt 0 ] || break
+            request_timeout=30
+            [ "$remaining" -ge "$request_timeout" ] || request_timeout=$remaining
+            : > "$response_file"
+            curl_status=0
+            http_code=$(curl -q -sS --noproxy '*' --connect-timeout 5 --max-time "$request_timeout" \
+                --max-filesize 1048576 \
+                -o "$response_file" -w '%{http_code}' \
                 "${whisper_live_curl_args[@]}" \
-                -F file=@/tmp/test.wav -F model=whisper-1 \
-                | grep -q '"text"'; then
+                -F "file=@$test_dir/test.wav" -F model=whisper-1 \
+                http://127.0.0.1:8000/v1/audio/transcriptions \
+                2> "$curl_error_file") || curl_status=$?
+            if [ "$curl_status" -eq 0 ] && [ "$http_code" = "200" ] \
+                && python3 -c 'import json, sys; data = json.load(sys.stdin); sys.exit(0 if isinstance(data, dict) and isinstance(data.get("text"), str) else 1)' \
+                  < "$response_file"; then
+              transcription_ok=true
               break
             fi
-            sleep 5
-            i=$((i + 5))
+            printf 'Transcription attempt failed after %ss (curl exit %s, HTTP %s).\n' \
+              "$((SECONDS - transcription_started))" "$curl_status" "${http_code:-000}" >&2
+            head -c 8192 "$curl_error_file" >&2
+            printf 'Response body (first 8192 bytes):\n' >&2
+            head -c 8192 "$response_file" >&2
+            printf '\n' >&2
+            if [ "$http_code" = "500" ] \
+                && grep -Fq 'unexpected keyword argument' "$response_file" \
+                && grep -Fq 'metadata_errors' "$response_file"; then
+              echo "Error: incompatible PyAV version; faster-whisper still uses metadata_errors" >&2
+              exit 1
+            fi
+            remaining=$((transcription_deadline - SECONDS))
+            [ "$remaining" -gt 0 ] || break
+            retry_delay=5
+            [ "$remaining" -ge "$retry_delay" ] || retry_delay=$remaining
+            sleep "$retry_delay"
           done
-          if [ "$i" -ge 300 ]; then
-            echo "Error: transcription endpoint did not respond within 300 seconds" >&2
+          if [ "$transcription_ok" != true ]; then
+            echo "Error: transcription test failed after $((SECONDS - transcription_started)) seconds (limit: 300 seconds)" >&2
             exit 1
           fi
+          set -x
 
           docker restart "$TEST_ID"
 
@@ -205,7 +264,7 @@ jobs:
           # Wait for server to come back (up to 120 seconds)
           i=0
           while [ "$i" -lt 120 ]; do
-            if docker exec "$TEST_ID" curl -sf --max-time 2 \
+            if docker exec "$TEST_ID" curl -q -sf --noproxy '*' --max-time 2 \
                 "${whisper_live_curl_args[@]}" \
                 http://127.0.0.1:8000/docs >/dev/null 2>&1; then
               break
@@ -218,11 +277,27 @@ jobs:
           docker logs "$TEST_ID"
 
           # Verify server is ready after restart
-          docker exec "$TEST_ID" curl -sf --max-time 5 \
+          docker exec "$TEST_ID" curl -q -sf --noproxy '*' --max-time 5 \
             "${whisper_live_curl_args[@]}" \
             http://127.0.0.1:8000/docs
 
           exit 0
+      - name: Failure diagnostics
+        if: failure()
+        timeout-minutes: 1
+        run: |
+          set +x
+          whisper_live_key=$(timeout 10s docker exec "$TEST_ID" whisper_live_manage --getkey 2>/dev/null || true)
+          if [ -n "$whisper_live_key" ]; then
+            mask_value=${whisper_live_key//'%'/'%25'}
+            mask_value=${mask_value//$'\r'/'%0D'}
+            mask_value=${mask_value//$'\n'/'%0A'}
+            printf '::add-mask::%s\n' "$mask_value"
+          fi
+          workflow_command_token=$(python3 -c 'import uuid; print(uuid.uuid4())')
+          trap 'printf "::%s::\n" "$workflow_command_token"' EXIT
+          printf '::stop-commands::%s\n' "$workflow_command_token"
+          timeout 20s docker logs --tail 200 "$TEST_ID" 2>&1 || true
       - name: Clear
         if: always()
         run: |

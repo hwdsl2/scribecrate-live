@@ -1,12 +1,12 @@
 #!/bin/bash
 #
-# Docker script to configure and start a WhisperLive real-time speech-to-text server
+# Docker script to configure and start a ScribeCrate Live real-time transcription server
 #
 # DO NOT RUN THIS SCRIPT ON YOUR PC OR MAC! THIS IS ONLY MEANT TO BE RUN
 # IN A CONTAINER!
 #
-# This file is part of WhisperLive Docker image, available at:
-# https://github.com/hwdsl2/docker-whisper-live
+# This file is part of ScribeCrate Live image, available at:
+# https://github.com/hwdsl2/scribecrate-live
 #
 # Copyright (C) 2026 Lin Song <linsongui@gmail.com>
 #
@@ -279,7 +279,7 @@ printf '%s' "$WHISPERLIVE_MODEL"     > /var/lib/whisper-live/.model
 printf '%s' "$server_addr"           > /var/lib/whisper-live/.server_addr
 
 echo
-echo "WhisperLive Docker - https://github.com/hwdsl2/docker-whisper-live"
+echo "ScribeCrate Live - https://github.com/hwdsl2/scribecrate-live"
 
 if ! grep -q " /var/lib/whisper-live " /proc/mounts 2>/dev/null; then
   echo
@@ -292,13 +292,13 @@ if ! grep -q " /var/lib/whisper-live " /proc/mounts 2>/dev/null; then
   fi
 elif [ -z "$WHISPERLIVE_API_KEY" ] && [ -z "$WHISPERLIVE_API_KEY_WAS_SET" ] && $data_existing; then
   echo
-  echo "Warning: Existing WhisperLive data was found but no API key is configured."
+  echo "Warning: Existing ScribeCrate Live data was found but no API key is configured."
   echo "         Preserving no-auth behavior for backward compatibility."
   echo "         Set WHISPERLIVE_API_KEY to enable authentication."
 fi
 
 echo
-echo "Starting WhisperLive real-time speech-to-text server..."
+echo "Starting ScribeCrate Live real-time transcription server..."
 echo "  Model:          $WHISPERLIVE_MODEL"
 echo "  Language:       $WHISPERLIVE_LANGUAGE"
 echo "  WebSocket port: $WHISPERLIVE_PORT"
@@ -332,7 +332,7 @@ echo
 # Graceful shutdown
 cleanup() {
   echo
-  echo "Stopping WhisperLive server..."
+  echo "Stopping ScribeCrate Live server..."
   kill "${SERVER_PID:-}" 2>/dev/null
   wait "${SERVER_PID:-}" 2>/dev/null
   exit 0
@@ -362,7 +362,7 @@ _model_to_hf_repo() {
 _hf_repo=$(_model_to_hf_repo "$WHISPERLIVE_MODEL")
 export _HF_REPO="$_hf_repo"
 
-# Start the WhisperLive server in the background
+# Start the ScribeCrate Live server in the background
 python3 -c "
 import sys, os, logging
 from whisper_live.server import TranscriptionServer
@@ -411,9 +411,9 @@ wait_for_server() {
 
 if ! wait_for_server; then
   if ! kill -0 "$SERVER_PID" 2>/dev/null; then
-    echo "Error: WhisperLive server failed to start. Check the container logs for details." >&2
+    echo "Error: ScribeCrate Live server failed to start. Check the container logs for details." >&2
   else
-    echo "Error: WhisperLive server did not become ready within 300 seconds." >&2
+    echo "Error: ScribeCrate Live server did not become ready within 300 seconds." >&2
     kill "$SERVER_PID" 2>/dev/null
   fi
   exit 1
@@ -423,7 +423,7 @@ report_usage_counts
 
 echo
 echo "==========================================================="
-echo " WhisperLive real-time transcription server is ready"
+echo " ScribeCrate Live real-time transcription server is ready"
 echo "==========================================================="
 echo " Model:          $WHISPERLIVE_MODEL"
 echo " WebSocket:      ws://${server_addr}:${WHISPERLIVE_PORT}"
@@ -432,7 +432,7 @@ echo "==========================================================="
 echo
 echo "Connect a client (WebSocket streaming):"
 if [ -n "$WHISPERLIVE_API_KEY" ]; then
-  echo "  ws://${server_addr}:${WHISPERLIVE_PORT}?token=\$WHISPERLIVE_API_KEY"
+  echo "  ws://${server_addr}:${WHISPERLIVE_PORT}?token=<api-key>"
 else
   echo "  ws://${server_addr}:${WHISPERLIVE_PORT}"
 fi
@@ -440,19 +440,23 @@ echo
 echo "Transcribe a file (REST API):"
 echo "  curl http://${server_addr}:${WHISPERLIVE_REST_PORT}/v1/audio/transcriptions \\"
 if [ -n "$WHISPERLIVE_API_KEY" ]; then
-  echo "    -H \"Authorization: Bearer \$WHISPERLIVE_API_KEY\" \\"
+  echo "    -H \"Authorization: Bearer <api-key>\" \\"
 fi
 echo "    -F file=@audio.mp3 -F model=whisper-1"
 echo
 if [ -n "$WHISPERLIVE_API_KEY" ]; then
   echo "API key authentication is enabled."
-  echo "WebSocket auth:   add ?token=\$WHISPERLIVE_API_KEY to the URL"
+  echo "Replace <api-key> with the key from: docker exec <container> whisper_live_manage --getkey"
   echo
 fi
 echo "Interactive API docs: http://${server_addr}:${WHISPERLIVE_REST_PORT}/docs"
+echo "Docs, OpenAPI schema, and health checks are public."
+if [ -n "$WHISPERLIVE_API_KEY" ]; then
+  echo "Transcription requests require the Authorization: Bearer <api-key> header."
+fi
 echo
 echo "To set up HTTPS, see: Using a reverse proxy"
-echo "  https://github.com/hwdsl2/docker-whisper-live#using-a-reverse-proxy"
+echo "  https://github.com/hwdsl2/scribecrate-live#using-a-reverse-proxy"
 echo
 echo "Setup complete."
 echo

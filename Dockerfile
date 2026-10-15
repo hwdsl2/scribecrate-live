@@ -15,6 +15,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PATH="/opt/venv/bin:$PATH"
 
+# PyAV 19 removed metadata_errors, which faster-whisper's decoder still uses.
 RUN set -x \
     && apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates curl gcc libc6-dev portaudio19-dev \
@@ -30,6 +31,7 @@ RUN set -x \
          "whisper-live==$WHISPERLIVE_VERSION" \
          "websockets==$WEBSOCKETS_VERSION" \
          faster-whisper \
+         "av>=11,<19" \
          fastapi \
          uvicorn \
          python-multipart \
@@ -66,8 +68,8 @@ LABEL maintainer="Lin Song <linsongui@gmail.com>" \
     org.opencontainers.image.version="$VERSION" \
     org.opencontainers.image.revision="$VCS_REF" \
     org.opencontainers.image.authors="Lin Song <linsongui@gmail.com>" \
-    org.opencontainers.image.title="WhisperLive Real-Time Speech-to-Text on Docker" \
-    org.opencontainers.image.description="Docker image to run a WhisperLive real-time speech-to-text server with WebSocket streaming and an OpenAI-compatible REST API." \
-    org.opencontainers.image.url="https://github.com/hwdsl2/docker-whisper-live" \
-    org.opencontainers.image.source="https://github.com/hwdsl2/docker-whisper-live" \
-    org.opencontainers.image.documentation="https://github.com/hwdsl2/docker-whisper-live"
+    org.opencontainers.image.title="ScribeCrate Live" \
+    org.opencontainers.image.description="ScribeCrate Live: self-hosted real-time transcription powered by WhisperLive and faster-whisper, with WebSocket streaming and an OpenAI-compatible REST API for audio files." \
+    org.opencontainers.image.url="https://github.com/hwdsl2/scribecrate-live" \
+    org.opencontainers.image.source="https://github.com/hwdsl2/scribecrate-live" \
+    org.opencontainers.image.documentation="https://github.com/hwdsl2/scribecrate-live"

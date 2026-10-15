@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# https://github.com/hwdsl2/docker-whisper-live
+# https://github.com/hwdsl2/scribecrate-live
 #
 # Copyright (C) 2026 Lin Song <linsongui@gmail.com>
 #
@@ -26,8 +26,8 @@ show_usage() {
   fi
   cat 1>&2 <<'EOF'
 
-WhisperLive Docker - Server Management
-https://github.com/hwdsl2/docker-whisper-live
+ScribeCrate Live - Server Management
+https://github.com/hwdsl2/scribecrate-live
 
 Usage: docker exec <container> whisper_live_manage [options]
 
@@ -125,7 +125,7 @@ check_server() {
   elif curl -sf --max-time 5 "http://127.0.0.1:${WHISPERLIVE_REST_PORT}/docs" >/dev/null 2>&1; then
     return 0
   fi
-  exiterr "WhisperLive server is not responding on REST port ${WHISPERLIVE_REST_PORT}. Is the container fully started?"
+  exiterr "ScribeCrate Live server is not responding on REST port ${WHISPERLIVE_REST_PORT}. Is the container fully started?"
 }
 
 parse_args() {
@@ -201,7 +201,7 @@ do_show_key() {
 
   echo
   echo "==========================================================="
-  echo " WhisperLive API key"
+  echo " ScribeCrate Live API key"
   echo "==========================================================="
   echo "${WHISPERLIVE_API_KEY}"
   echo "==========================================================="
@@ -230,7 +230,7 @@ do_get_key() {
 do_show_info() {
   echo
   echo "==========================================================="
-  echo " WhisperLive Real-Time Speech-to-Text Server"
+  echo " ScribeCrate Live Real-Time Transcription Server"
   echo "==========================================================="
   echo " Active model: $WHISPERLIVE_MODEL"
   echo " WebSocket:    ws://${SERVER_ADDR}:${WHISPERLIVE_PORT}"
@@ -247,6 +247,10 @@ do_show_info() {
   echo "REST API endpoints:"
   echo "  POST http://${SERVER_ADDR}:${WHISPERLIVE_REST_PORT}/v1/audio/transcriptions"
   echo "  GET  http://${SERVER_ADDR}:${WHISPERLIVE_REST_PORT}/docs     (interactive docs)"
+  echo "  Docs, OpenAPI schema, and health checks are public."
+  if [ "$WHISPERLIVE_AUTH_ENABLED" = 1 ]; then
+    echo "  Transcription requests require Authorization: Bearer <api-key>."
+  fi
   echo
   echo "Example file transcription (REST):"
   echo "  curl http://${SERVER_ADDR}:${WHISPERLIVE_REST_PORT}/v1/audio/transcriptions \\"
