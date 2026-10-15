@@ -112,12 +112,12 @@ jobs:
           fi
 
           # Wait for server to be ready (up to 300 seconds for model download)
-          # /docs returns 200 (no auth) or 401 (auth enabled) once the server is up.
+          # /docs is exempt from auth and returns 200 once the server is up.
           i=0
           while [ "$i" -lt 300 ]; do
             http_code=$(docker exec "$TEST_ID" curl -q -s --noproxy '*' -o /dev/null -w '%{http_code}' --max-time 2 \
                 http://127.0.0.1:8000/docs 2>/dev/null || true)
-            if [ "$http_code" = "200" ] || [ "$http_code" = "401" ]; then
+            if [ "$http_code" = "200" ]; then
               break
             fi
             sleep 1
@@ -160,15 +160,16 @@ jobs:
             docker logs "$TEST_ID" 2>&1 | grep -q 'Preserving no-auth behavior for backward compatibility'
           fi
 
-          # Verify REST API docs endpoint
-          docker exec "$TEST_ID" curl -q -sf --noproxy '*' --max-time 5 \
-            "${whisper_live_curl_args[@]}" \
-            http://127.0.0.1:8000/docs
+          # Verify REST API docs endpoint (public regardless of auth since WhisperLive 0.10.0)
+          docker exec "$TEST_ID" curl -q -sf --noproxy '*' --max-time 5 http://127.0.0.1:8000/docs
 
           if [ "${#whisper_live_curl_args[@]}" -gt 0 ]; then
-            # Verify auth enforcement
+            # Verify auth enforcement against a protected REST route.
+            # /docs, /redoc, /openapi.json and /health are exempt from auth in WhisperLive 0.10.0,
+            # so enforcement must be checked against /v1/audio/transcriptions instead.
             http_code=$(curl -q -s --noproxy '*' --max-time 5 -o /dev/null -w '%{http_code}' \
-              http://127.0.0.1:8000/docs 2>/dev/null || true)
+              -F model=whisper-1 \
+              http://127.0.0.1:8000/v1/audio/transcriptions 2>/dev/null || true)
             [ "$http_code" = "401" ] || { echo "Expected 401 without key, got $http_code"; exit 1; }
           else
             # Explicit empty keys and existing no-key volumes preserve no-auth behavior.

@@ -247,8 +247,9 @@ do_show_info() {
   echo "REST API endpoints:"
   echo "  POST http://${SERVER_ADDR}:${WHISPERLIVE_REST_PORT}/v1/audio/transcriptions"
   echo "  GET  http://${SERVER_ADDR}:${WHISPERLIVE_REST_PORT}/docs     (interactive docs)"
+  echo "  Docs, OpenAPI schema, and health checks are public."
   if [ "$WHISPERLIVE_AUTH_ENABLED" = 1 ]; then
-    echo "  Docs and OpenAPI schema also require Authorization: Bearer <api-key>."
+    echo "  Transcription requests require Authorization: Bearer <api-key>."
   fi
   echo
   echo "Example file transcription (REST):"

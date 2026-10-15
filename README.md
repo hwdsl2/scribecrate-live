@@ -196,7 +196,7 @@ This Docker image uses the following variables, that can be declared in an `env`
 | `WHISPERLIVE_USE_VAD` | Voice Activity Detection default. For the `faster_whisper` backend, VAD is controlled per WebSocket client via the connection handshake `use_vad` field. | `true` |
 | `WHISPERLIVE_THREADS` | CPU threads for inference. Set to the number of physical cores for best latency. | `2` |
 | `WHISPERLIVE_LOG_LEVEL` | Log level: `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`. | `INFO` |
-| `WHISPERLIVE_API_KEY` | Optional API key. Fresh persistent installs auto-generate one. REST requests must include `Authorization: Bearer <key>`; WebSocket clients can use `?token=<key>`. Set explicitly empty to disable authentication. | Auto-generated for fresh persistent installs |
+| `WHISPERLIVE_API_KEY` | Optional API key. Fresh persistent installs auto-generate one. REST transcription requests must include `Authorization: Bearer <key>`; WebSocket clients can use `?token=<key>`. Set explicitly empty to disable authentication. | Auto-generated for fresh persistent installs |
 | `WHISPERLIVE_LOCAL_ONLY` | When set to any non-empty value (e.g. `true`), disables all HuggingFace model downloads. For offline or air-gapped deployments with pre-cached models. | *(not set)* |
 | `WHISPERLIVE_DISABLE_USAGE_COUNTS` | Set to `1` to disable anonymous aggregate usage counts. | *(not set)* |
 
@@ -433,7 +433,7 @@ Content-Type: multipart/form-data
 | Parameter | Type | Required | Description |
 |---|---|---|---|
 | `file` | file | ✅ | Audio file. Supported formats: `mp3`, `mp4`, `m4a`, `wav`, `webm`, `ogg`, `flac` and all other formats supported by ffmpeg. |
-| `model` | string | ✅ | Pass `whisper-1` (value is accepted but ignored; the active `WHISPERLIVE_MODEL` is always used). |
+| `model` | string | ✅ | Pass `whisper-1` to use the active `WHISPERLIVE_MODEL`, or a stock Whisper size (e.g. `small`, `medium`, `large-v3`) to transcribe this request with a different model. Unrecognized values fall back to `WHISPERLIVE_MODEL`. |
 | `language` | string | — | BCP-47 language code (e.g. `en`, `fr`, `zh`). If omitted, language is autodetected. |
 
 **Example:**
@@ -459,7 +459,7 @@ An interactive Swagger UI is available at:
 http://your_server_ip:8000/docs
 ```
 
-When API-key authentication is enabled, `/docs`, `/openapi.json`, and API requests all require `Authorization: Bearer <key>`. An ordinary browser visit returns `401`. To use Swagger UI in a browser, arrange for the header to be sent on the documentation, schema, and API requests; the token query parameter only authenticates WebSocket connections.
+WhisperLive 0.10.0 serves `/docs`, `/redoc`, `/openapi.json`, and `/health` without API-key authentication. When authentication is enabled, transcription requests still require `Authorization: Bearer <key>`, including requests sent from Swagger UI. To use Swagger UI for transcription, arrange for that header to be sent on API requests; the token query parameter only authenticates WebSocket connections.
 
 ## Persistent data
 
@@ -542,7 +542,7 @@ RAM figures are approximate and reflect INT8 quantization (default). Models are 
 
 If your ScribeCrate Live server is reachable from the public internet — even briefly — apply at minimum these protections. ScribeCrate Live is CPU/GPU-intensive, so an unprotected endpoint can be abused to burn your compute resources.
 
-**1. Use an API key.** Fresh installs with a mounted `/var/lib/whisper-live` volume auto-generate an API key. Display it with `docker exec whisper-live whisper_live_manage --showkey`, or use `docker exec whisper-live whisper_live_manage --getkey` in scripts. Existing installs without a key remain open for backward compatibility; set `WHISPERLIVE_API_KEY` in your `env` file to enable authentication manually. REST clients must send `Authorization: Bearer <key>`; WebSocket clients can send the same header or add `?token=<key>` to the URL.
+**1. Use an API key.** Fresh installs with a mounted `/var/lib/whisper-live` volume auto-generate an API key. Display it with `docker exec whisper-live whisper_live_manage --showkey`, or use `docker exec whisper-live whisper_live_manage --getkey` in scripts. Existing installs without a key remain open for backward compatibility; set `WHISPERLIVE_API_KEY` in your `env` file to enable authentication manually. REST transcription clients must send `Authorization: Bearer <key>`; WebSocket clients can send the same header or add `?token=<key>` to the URL.
 
 **2. Bind to localhost when fronted by a reverse proxy.** Replace `-p 9090:9090 -p 8000:8000` with `-p 127.0.0.1:9090:9090 -p 127.0.0.1:8000:8000` (or change both port mappings to their `127.0.0.1:` equivalents in `docker-compose.yml`) so the unencrypted ports are not reachable directly from outside the host.
 

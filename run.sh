@@ -450,8 +450,9 @@ if [ -n "$WHISPERLIVE_API_KEY" ]; then
   echo
 fi
 echo "Interactive API docs: http://${server_addr}:${WHISPERLIVE_REST_PORT}/docs"
+echo "Docs, OpenAPI schema, and health checks are public."
 if [ -n "$WHISPERLIVE_API_KEY" ]; then
-  echo "The docs and OpenAPI schema also require the Authorization: Bearer <api-key> header."
+  echo "Transcription requests require the Authorization: Bearer <api-key> header."
 fi
 echo
 echo "To set up HTTPS, see: Using a reverse proxy"

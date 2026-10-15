@@ -197,7 +197,7 @@ docker image tag quay.io/hwdsl2/whisper-live-server hwdsl2/whisper-live-server
 | `WHISPERLIVE_MAX_CONNECTION_TIME` | WebSocket 最大连接时长（秒）。超过此时长的客户端将被自动断开。 | `600` |
 | `WHISPERLIVE_USE_VAD` | 启用语音活动检测。设为 `true` 时自动检测并跳过静音段。设为 `false` 持续处理所有音频。 | `true` |
 | `WHISPERLIVE_THREADS` | 推理使用的 CPU 线程数。设为物理核心数可获得最佳延迟。 | `2` |
-| `WHISPERLIVE_API_KEY` | 可选 API 密钥。新持久化安装会自动生成。REST 请求须包含 `Authorization: Bearer <key>`；WebSocket 客户端可使用 `?token=<key>`。显式设置为空可禁用认证。 | 新持久化安装自动生成 |
+| `WHISPERLIVE_API_KEY` | 可选 API 密钥。新持久化安装会自动生成。REST 转录请求须包含 `Authorization: Bearer <key>`；WebSocket 客户端可使用 `?token=<key>`。显式设置为空可禁用认证。 | 新持久化安装自动生成 |
 | `WHISPERLIVE_LOG_LEVEL` | 日志级别：`DEBUG`、`INFO`、`WARNING`、`ERROR`、`CRITICAL`。 | `INFO` |
 | `WHISPERLIVE_LOCAL_ONLY` | 设为任意非空值（如 `true`）时，禁止所有 HuggingFace 模型下载。适用于预先缓存模型的离线或隔离网络部署。 | *（未设置）* |
 | `WHISPERLIVE_DISABLE_USAGE_COUNTS` | 设为 `1` 可禁用匿名聚合使用计数。 | *（未设置）* |
@@ -435,7 +435,7 @@ Content-Type: multipart/form-data
 | 参数 | 类型 | 必填 | 说明 |
 |---|---|---|---|
 | `file` | 文件 | ✅ | 音频文件。支持格式：`mp3`、`mp4`、`m4a`、`wav`、`webm`、`ogg`、`flac` 及 ffmpeg 支持的所有格式。 |
-| `model` | 字符串 | ✅ | 传入 `whisper-1`（值被接受，但始终使用当前活跃模型）。 |
+| `model` | 字符串 | ✅ | 传入 `whisper-1` 以使用当前活跃的 `WHISPERLIVE_MODEL`，或传入标准 Whisper 模型规格（如 `small`、`medium`、`large-v3`）以在本次请求中使用其他模型。无法识别的值将回退到 `WHISPERLIVE_MODEL`。 |
 | `language` | 字符串 | — | BCP-47 语言代码（如 `zh`、`en`、`ja`）。如不填，则自动检测语言。 |
 
 **示例：**
@@ -461,7 +461,7 @@ curl http://您的服务器IP:8000/v1/audio/transcriptions \
 http://您的服务器IP:8000/docs
 ```
 
-启用 API 密钥认证后，`/docs`、`/openapi.json` 和 API 请求都需要 `Authorization: Bearer <key>`。直接在浏览器中访问会返回 `401`。要在浏览器中使用 Swagger UI，需要为文档、接口定义和 API 请求都添加该请求头；token 查询参数仅用于 WebSocket 连接认证。
+WhisperLive 0.10.0 的 `/docs`、`/redoc`、`/openapi.json` 和 `/health` 无需 API 密钥认证即可访问。启用认证后，转录请求仍需包含 `Authorization: Bearer <key>`，包括从 Swagger UI 发出的请求。要使用 Swagger UI 进行转录，需要为 API 请求添加该请求头；token 查询参数仅用于 WebSocket 连接认证。
 
 ## 持久化数据
 
@@ -544,7 +544,7 @@ docker exec whisper-live whisper_live_manage --downloadmodel large-v3-turbo
 
 如果你的 ScribeCrate Live 服务器可从公网访问 —— 即使只是短暂可达 —— 也请至少采取以下保护措施。ScribeCrate Live 对 CPU/GPU 资源消耗较大，未做防护的接口可能被滥用，浪费你的计算资源。
 
-**1. 使用 API 密钥。** 挂载 `/var/lib/whisper-live` 数据卷的新安装会自动生成 API 密钥。可用 `docker exec whisper-live whisper_live_manage --showkey` 查看；脚本中可用 `docker exec whisper-live whisper_live_manage --getkey`。没有密钥的既有安装会保持开放以兼容旧行为；也可以在 `env` 文件中设置 `WHISPERLIVE_API_KEY` 手动启用认证。REST 客户端需发送 `Authorization: Bearer <key>`；WebSocket 客户端可发送相同请求头或在 URL 中添加 `?token=<key>`。
+**1. 使用 API 密钥。** 挂载 `/var/lib/whisper-live` 数据卷的新安装会自动生成 API 密钥。可用 `docker exec whisper-live whisper_live_manage --showkey` 查看；脚本中可用 `docker exec whisper-live whisper_live_manage --getkey`。没有密钥的既有安装会保持开放以兼容旧行为；也可以在 `env` 文件中设置 `WHISPERLIVE_API_KEY` 手动启用认证。REST 转录客户端需发送 `Authorization: Bearer <key>`；WebSocket 客户端可发送相同请求头或在 URL 中添加 `?token=<key>`。
 
 **2. 在反向代理后面时绑定到 localhost。** 将 `-p 9090:9090 -p 8000:8000` 替换为 `-p 127.0.0.1:9090:9090 -p 127.0.0.1:8000:8000`（或在 `docker-compose.yml` 中将两个端口映射改为各自的 `127.0.0.1:` 等效形式），使未加密端口无法从主机外部直接访问。
 

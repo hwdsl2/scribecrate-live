@@ -8,20 +8,18 @@ FROM python:3.12-slim
 
 WORKDIR /opt/src
 
-ARG WHISPERLIVE_VERSION=0.9.0
-ARG WEBSOCKETS_VERSION=17.0.1
+ARG WHISPERLIVE_VERSION=0.10.0
+ARG WEBSOCKETS_VERSION=17.1
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PATH="/opt/venv/bin:$PATH" \
     LD_LIBRARY_PATH="/opt/venv/lib/python3.12/site-packages/nvidia/cublas/lib:/opt/venv/lib/python3.12/site-packages/nvidia/cudnn/lib"
 
-COPY ./patches/whisperlive-0.9.0-websocket-auth.patch /tmp/
-
 # PyAV 19 removed metadata_errors, which faster-whisper's decoder still uses.
 RUN set -x \
     && apt-get update \
-    && apt-get install -y --no-install-recommends ca-certificates curl gcc libc6-dev patch portaudio19-dev \
+    && apt-get install -y --no-install-recommends ca-certificates curl gcc libc6-dev portaudio19-dev \
     && python3 -m venv /opt/venv \
     && pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cu129 \
@@ -34,13 +32,10 @@ RUN set -x \
          uvicorn \
          python-multipart \
     && site_dir=$(python -c 'import site; print(site.getsitepackages()[0])') \
-    && patch --batch --forward --fuzz=0 -p1 -d "$site_dir" \
-         < /tmp/whisperlive-0.9.0-websocket-auth.patch \
     && WHISPERLIVE_VERSION="$WHISPERLIVE_VERSION" WEBSOCKETS_VERSION="$WEBSOCKETS_VERSION" \
          python -c 'import os; from importlib.metadata import version; assert version("whisper-live") == os.environ["WHISPERLIVE_VERSION"]; assert version("websockets") == os.environ["WEBSOCKETS_VERSION"]' \
     && python -m py_compile "$site_dir/whisper_live/server.py" \
-    && rm -f /tmp/whisperlive-0.9.0-websocket-auth.patch \
-    && apt-get purge -y --auto-remove gcc libc6-dev patch \
+    && apt-get purge -y --auto-remove gcc libc6-dev \
     && rm -rf /var/lib/apt/lists/* \
     && find /opt/venv -name '*.pyi' -delete \
     && { find /opt/venv -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true; } \
