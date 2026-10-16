@@ -433,7 +433,7 @@ Content-Type: multipart/form-data
 | Parameter | Type | Required | Description |
 |---|---|---|---|
 | `file` | file | ✅ | Audio file. Supported formats: `mp3`, `mp4`, `m4a`, `wav`, `webm`, `ogg`, `flac` and all other formats supported by ffmpeg. |
-| `model` | string | ✅ | Pass `whisper-1` to use the active `WHISPERLIVE_MODEL`, or a stock Whisper size (e.g. `small`, `medium`, `large-v3`) to transcribe this request with a different model. Unrecognized values fall back to `WHISPERLIVE_MODEL`. |
+| `model` | string | — | Omit or pass `whisper-1` to use `WHISPERLIVE_MODEL`. Pass a supported Whisper size (e.g. `small`, `medium`, `large-v3`), existing local model path, or Hugging Face repository ID to select another model for this request. Other names fall back to `WHISPERLIVE_MODEL`; an unavailable model path or repository can fail to load. |
 | `language` | string | — | BCP-47 language code (e.g. `en`, `fr`, `zh`). If omitted, language is autodetected. |
 
 **Example:**

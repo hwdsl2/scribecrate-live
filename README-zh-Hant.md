@@ -435,7 +435,7 @@ Content-Type: multipart/form-data
 | 參數 | 類型 | 必填 | 說明 |
 |---|---|---|---|
 | `file` | 檔案 | ✅ | 音訊檔案。支援格式：`mp3`、`mp4`、`m4a`、`wav`、`webm`、`ogg`、`flac` 及 ffmpeg 支援的所有格式。 |
-| `model` | 字串 | ✅ | 傳入 `whisper-1` 以使用當前活躍的 `WHISPERLIVE_MODEL`，或傳入標準 Whisper 模型規格（如 `small`、`medium`、`large-v3`）以在本次請求中使用其他模型。無法識別的值將回退到 `WHISPERLIVE_MODEL`。 |
+| `model` | 字串 | — | 省略或傳入 `whisper-1` 以使用 `WHISPERLIVE_MODEL`。也可傳入支援的 Whisper 模型規格（如 `small`、`medium`、`large-v3`）、現有的本機模型路徑或 Hugging Face 儲存庫 ID，為本次請求選擇其他模型。其他名稱會回退到 `WHISPERLIVE_MODEL`；無法使用的模型路徑或儲存庫可能導致載入失敗。 |
 | `language` | 字串 | — | BCP-47 語言代碼（如 `zh`、`en`、`ja`）。如不填，則自動偵測語言。 |
 
 **範例：**
