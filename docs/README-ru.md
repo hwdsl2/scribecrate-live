@@ -1,10 +1,10 @@
-[English](README.md) | [简体中文](README-zh.md) | [繁體中文](README-zh-Hant.md) | [Русский](README-ru.md)
+[English](../README.md) | [简体中文](README-zh.md) | [繁體中文](README-zh-Hant.md) | [Русский](README-ru.md)
 
 # ScribeCrate Live
 
 **Сервер транскрипции в реальном времени с открытым исходным кодом для самостоятельного размещения.**
 
-[![Статус сборки](https://github.com/hwdsl2/scribecrate-live/actions/workflows/main.yml/badge.svg)](https://github.com/hwdsl2/scribecrate-live/actions/workflows/main.yml) &nbsp;[![Docker Pulls](https://raw.githubusercontent.com/hwdsl2/badges/main/img/docker-pulls-whisper-live-server.svg)](https://hub.docker.com/r/hwdsl2/whisper-live-server) &nbsp;[![License: MIT](docs/images/license.svg)](https://opensource.org/licenses/MIT) &nbsp;[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://selfhostedaistack.com/scribecrate-live-notebook)
+[![Статус сборки](https://github.com/hwdsl2/scribecrate-live/actions/workflows/main.yml/badge.svg)](https://github.com/hwdsl2/scribecrate-live/actions/workflows/main.yml) &nbsp;[![Docker Pulls](https://raw.githubusercontent.com/hwdsl2/badges/main/img/docker-pulls-whisper-live-server.svg)](https://hub.docker.com/r/hwdsl2/whisper-live-server) &nbsp;[![License: MIT](images/license.svg)](https://opensource.org/licenses/MIT) &nbsp;[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://selfhostedaistack.com/scribecrate-live-notebook)
 
 ScribeCrate Live представляет собой сервер транскрипции речи в реальном времени для самостоятельного размещения на базе [WhisperLive](https://github.com/collabora/WhisperLive) и [faster-whisper](https://github.com/SYSTRAN/faster-whisper). Предоставляет транскрипцию аудио с микрофона и аудиопотоков через WebSocket, а также совместимый с OpenAI REST API для аудиофайлов. Развёртывается с помощью Docker на CPU или NVIDIA GPU. Образ основан на Debian (python:3.12-slim).
 
@@ -21,14 +21,14 @@ ScribeCrate Live представляет собой сервер транскр
 - **Работа без интернета:** работа без доступа к интернету с предварительно загруженными моделями (`WHISPERLIVE_LOCAL_ONLY`)
 - **Автоматическая сборка:** образы автоматически собираются и публикуются через [GitHub Actions](https://github.com/hwdsl2/scribecrate-live/actions).
 
-Также доступен в составе [Self-Hosted AI Stack](https://github.com/hwdsl2/self-hosted-ai-stack/blob/main/README-ru.md), который развёртывает полный AI-стек на собственном сервере одной командой.
+Также доступен в составе [Self-Hosted AI Stack](https://github.com/hwdsl2/self-hosted-ai-stack/blob/main/docs/README-ru.md), который развёртывает полный AI-стек на собственном сервере одной командой.
 
 > 📘 [The Self-Hosted AI Builder’s Guide](https://books2read.com/aiguide?store=amazon): практическое руководство по созданию, защите и эксплуатации собственного приватного ИИ-стека.
 
 **Также доступно:**
 
 - Попробовать онлайн: [Открыть в Colab](https://selfhostedaistack.com/scribecrate-live-notebook) — Docker и установка не требуются
-- Связанные AI-сервисы: [ScribeCrate](https://github.com/hwdsl2/scribecrate/blob/main/README-ru.md), [SpeakCrate](https://github.com/hwdsl2/speakcrate/blob/main/README-ru.md), [EmbedCrate](https://github.com/hwdsl2/embedcrate/blob/main/README-ru.md), [GatewayCrate](https://github.com/hwdsl2/gatewaycrate/blob/main/README-ru.md), [InferCrate](https://github.com/hwdsl2/infercrate/blob/main/README-ru.md), [ParseCrate](https://github.com/hwdsl2/parsecrate/blob/main/README-ru.md), [UplinkCrate](https://github.com/hwdsl2/uplinkcrate/blob/main/README-ru.md)
+- Связанные AI-сервисы: [ScribeCrate](https://github.com/hwdsl2/scribecrate/blob/main/docs/README-ru.md), [SpeakCrate](https://github.com/hwdsl2/speakcrate/blob/main/docs/README-ru.md), [EmbedCrate](https://github.com/hwdsl2/embedcrate/blob/main/docs/README-ru.md), [GatewayCrate](https://github.com/hwdsl2/gatewaycrate/blob/main/docs/README-ru.md), [InferCrate](https://github.com/hwdsl2/infercrate/blob/main/docs/README-ru.md), [ParseCrate](https://github.com/hwdsl2/parsecrate/blob/main/docs/README-ru.md), [UplinkCrate](https://github.com/hwdsl2/uplinkcrate/blob/main/docs/README-ru.md)
 
 ## Быстрый старт
 
@@ -117,7 +117,7 @@ curl http://ip_вашего_сервера:8000/v1/audio/transcriptions \
 
 ## ScribeCrate и ScribeCrate Live: что выбрать
 
-| | [ScribeCrate](https://github.com/hwdsl2/scribecrate/blob/main/README-ru.md) | **ScribeCrate Live** |
+| | [ScribeCrate](https://github.com/hwdsl2/scribecrate/blob/main/docs/README-ru.md) | **ScribeCrate Live** |
 |---|---|---|
 | **Назначение** | Транскрибирование готовых аудиофайлов | Живой микрофон / потоковое аудио в реальном времени |
 | **Протокол** | HTTP REST | WebSocket (потоковый) + HTTP REST |
@@ -136,9 +136,9 @@ curl http://ip_вашего_сервера:8000/v1/audio/transcriptions \
 
 - [Setup IPsec VPN](https://github.com/hwdsl2/setup-ipsec-vpn/blob/master/README-ru.md)
 - [IPsec VPN на Docker](https://github.com/hwdsl2/docker-ipsec-vpn-server/blob/master/README-ru.md)
-- [WireGuard](https://github.com/hwdsl2/docker-wireguard/blob/main/README-ru.md)
-- [OpenVPN](https://github.com/hwdsl2/docker-openvpn/blob/main/README-ru.md)
-- [Headscale](https://github.com/hwdsl2/docker-headscale/blob/main/README-ru.md)
+- [WireGuard](https://github.com/hwdsl2/docker-wireguard/blob/main/docs/README-ru.md)
+- [OpenVPN](https://github.com/hwdsl2/docker-openvpn/blob/main/docs/README-ru.md)
+- [Headscale](https://github.com/hwdsl2/docker-headscale/blob/main/docs/README-ru.md)
 
 </details>
 
@@ -640,7 +640,7 @@ docker rm -f whisper-live
 
 ScribeCrate Live можно использовать как службу распознавания речи в реальном времени в более широком self-hosted AI-стеке.
 
-Готовые полные и облегчённые стеки Docker Compose, примеры ручного запуска через `docker run`, а также примеры голосовых, RAG- и MCP-конвейеров с SpeakCrate, EmbedCrate, GatewayCrate, InferCrate, ParseCrate и UplinkCrate см. в [Self-Hosted AI Stack](https://github.com/hwdsl2/self-hosted-ai-stack/blob/main/README-ru.md).
+Готовые полные и облегчённые стеки Docker Compose, примеры ручного запуска через `docker run`, а также примеры голосовых, RAG- и MCP-конвейеров с SpeakCrate, EmbedCrate, GatewayCrate, InferCrate, ParseCrate и UplinkCrate см. в [Self-Hosted AI Stack](https://github.com/hwdsl2/self-hosted-ai-stack/blob/main/docs/README-ru.md).
 
 ## Счётчики использования
 
