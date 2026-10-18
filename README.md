@@ -8,7 +8,7 @@
 
 ScribeCrate Live is a self-hosted real-time speech-to-text server powered by [WhisperLive](https://github.com/collabora/WhisperLive) and [faster-whisper](https://github.com/SYSTRAN/faster-whisper). It provides WebSocket transcription for live microphone audio and audio streams, plus an OpenAI-compatible REST API for audio files. Deploy with Docker on CPU or an NVIDIA GPU. The image is based on Debian (python:3.12-slim).
 
-> Previously known as `docker-whisper-live`, maintained by [hwdsl2](https://github.com/hwdsl2). The Docker image remains `hwdsl2/whisper-live-server`.
+> Previously known as `docker-whisper-live`, maintained by [hwdsl2](https://github.com/hwdsl2). The Docker image name remains `hwdsl2/whisper-live-server`.
 
 **Features:**
 

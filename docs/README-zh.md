@@ -8,7 +8,7 @@
 
 ScribeCrate Live 是一个自托管的实时语音转文字服务器，由 [WhisperLive](https://github.com/collabora/WhisperLive) 和 [faster-whisper](https://github.com/SYSTRAN/faster-whisper) 提供支持。它提供用于实时麦克风音频和音频流转录的 WebSocket 服务，以及用于音频文件转录的 OpenAI 兼容 REST API。可使用 Docker 在 CPU 或 NVIDIA GPU 上部署。镜像基于 Debian（python:3.12-slim）。
 
-> 本项目原名为 `docker-whisper-live`，由 [hwdsl2](https://github.com/hwdsl2) 维护。Docker 镜像仍为 `hwdsl2/whisper-live-server`。
+> 本项目原名为 `docker-whisper-live`，由 [hwdsl2](https://github.com/hwdsl2) 维护。Docker 镜像名称仍为 `hwdsl2/whisper-live-server`。
 
 **功能特性：**
 
