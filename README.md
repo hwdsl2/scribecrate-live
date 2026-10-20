@@ -27,7 +27,7 @@ Also available as part of the [Self-Hosted AI Stack](https://github.com/hwdsl2/s
 
 **Also available:**
 
-- Try it online: [Open in Colab](https://selfhostedaistack.com/scribecrate-live-notebook) — no Docker or installation required
+- Try it online: [Open in Colab](https://selfhostedaistack.com/scribecrate-live-notebook) — no Docker or local installation required
 - Related AI services: [ScribeCrate](https://github.com/hwdsl2/scribecrate), [SpeakCrate](https://github.com/hwdsl2/speakcrate), [EmbedCrate](https://github.com/hwdsl2/embedcrate), [GatewayCrate](https://github.com/hwdsl2/gatewaycrate), [InferCrate](https://github.com/hwdsl2/infercrate), [ParseCrate](https://github.com/hwdsl2/parsecrate), [UplinkCrate](https://github.com/hwdsl2/uplinkcrate)
 
 ## Quick start

@@ -27,7 +27,7 @@ ScribeCrate Live 是一个自托管的实时语音转文字服务器，由 [Whis
 
 **另提供：**
 
-- 在线试用：[在 Colab 中打开](https://selfhostedaistack.com/scribecrate-live-notebook)——无需 Docker 或安装
+- 在线试用：[在 Colab 中打开](https://selfhostedaistack.com/scribecrate-live-notebook)——无需 Docker 或本地安装
 - 相关 AI 服务：[ScribeCrate](https://github.com/hwdsl2/scribecrate/blob/main/docs/README-zh.md)、[SpeakCrate](https://github.com/hwdsl2/speakcrate/blob/main/docs/README-zh.md)、[EmbedCrate](https://github.com/hwdsl2/embedcrate/blob/main/docs/README-zh.md)、[GatewayCrate](https://github.com/hwdsl2/gatewaycrate/blob/main/docs/README-zh.md)、[InferCrate](https://github.com/hwdsl2/infercrate/blob/main/docs/README-zh.md)、[ParseCrate](https://github.com/hwdsl2/parsecrate/blob/main/docs/README-zh.md)、[UplinkCrate](https://github.com/hwdsl2/uplinkcrate/blob/main/docs/README-zh.md)
 
 ## 快速开始
