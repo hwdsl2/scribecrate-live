@@ -21,12 +21,7 @@ RUN set -x \
     && apt-get install -y --no-install-recommends ca-certificates curl gcc libc6-dev portaudio19-dev \
     && python3 -m venv /opt/venv \
     && pip install --no-cache-dir --upgrade pip \
-    && ARCH=$(uname -m) \
-    && if [ "$ARCH" = "x86_64" ]; then \
-         pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu; \
-       else \
-         pip install --no-cache-dir torch; \
-       fi \
+    && pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu \
     && pip install --no-cache-dir --uploaded-prior-to P7D \
          "whisper-live==$WHISPERLIVE_VERSION" \
          "websockets==$WEBSOCKETS_VERSION" \
