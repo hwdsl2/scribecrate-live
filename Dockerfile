@@ -37,6 +37,7 @@ RUN set -x \
     && pip list --format=freeze | grep -iE '^nvidia[_-]|^cuda[_-]|^triton' | cut -d= -f1 | xargs -r pip uninstall -y \
     && apt-get purge -y --auto-remove gcc libc6-dev \
     && rm -rf /var/lib/apt/lists/* \
+    && python -c 'import torch; assert torch.version.cuda is None, torch.__version__; from whisper_live.server import TranscriptionServer' \
     && find /opt/venv -name '*.pyi' -delete \
     && { find /opt/venv -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true; } \
     && mkdir -p /var/lib/whisper-live
