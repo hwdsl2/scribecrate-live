@@ -2,6 +2,15 @@
 
 Notable changes to ScribeCrate Live are documented here.
 
+## 2026-10-24
+
+Release: `2026.10.1`
+
+### Changed
+
+- Established the first tagged source release. Docker images continue to update
+  independently through existing moving tags.
+
 ## 2026-10-15
 
 ### Changed
