@@ -7,11 +7,15 @@ permissions:
 
 jobs:
   whisper_live_test:
-    runs-on: ubuntu-24.04
+    runs-on: ${{ matrix.runner }}
     if: github.repository_owner == 'hwdsl2'
     strategy:
       matrix:
+        runner: [ubuntu-24.04]
         test_id: [no-env, with-env, with-key, empty-key, existing-no-key]
+        include:
+          - runner: ubuntu-24.04-arm
+            test_id: with-key
       fail-fast: false
     env:
       TEST_ID: ${{ matrix.test_id }}
