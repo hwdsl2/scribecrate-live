@@ -4,6 +4,14 @@ Notable changes to ScribeCrate Live are documented here.
 
 ## 2026-10-24
 
+Release: `2026.10.2`
+
+### Fixed
+
+- Fixed ARM64 CPU image startup by installing CPU-only PyTorch wheels.
+
+## 2026-10-24
+
 Release: `2026.10.1`
 
 ### Changed
