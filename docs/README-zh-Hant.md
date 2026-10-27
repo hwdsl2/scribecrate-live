@@ -6,13 +6,14 @@
 
 [![建置狀態](https://github.com/hwdsl2/scribecrate-live/actions/workflows/main.yml/badge.svg)](https://github.com/hwdsl2/scribecrate-live/actions/workflows/main.yml) &nbsp;[![Docker Pulls](https://raw.githubusercontent.com/hwdsl2/badges/main/img/docker-pulls-whisper-live-server.svg)](https://hub.docker.com/r/hwdsl2/whisper-live-server) &nbsp;[![License: MIT](images/license.svg)](https://opensource.org/licenses/MIT) &nbsp;[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://selfhostedaistack.com/scribecrate-live-notebook)
 
-ScribeCrate Live 是一個自託管的即時語音轉文字伺服器，由 [WhisperLive](https://github.com/collabora/WhisperLive) 和 [faster-whisper](https://github.com/SYSTRAN/faster-whisper) 提供支援。它提供用於即時麥克風音訊和音訊串流轉錄的 WebSocket 服務，以及用於音訊檔案轉錄的 OpenAI 相容 REST API。可使用 Docker 在 CPU 或 NVIDIA GPU 上部署。映像基於 Debian（python:3.12-slim）。
+ScribeCrate Live 是一個自託管的即時語音轉文字伺服器，由 [WhisperLive](https://github.com/collabora/WhisperLive) 和 [faster-whisper](https://github.com/SYSTRAN/faster-whisper) 提供支援。它透過 WebSocket 為即時麥克風音訊和音訊串流提供轉錄及語音譯成英語的功能，並透過 OpenAI 相容 REST API 提供音訊檔案轉錄。可使用 Docker 在 CPU 或 NVIDIA GPU 上部署。映像基於 Debian（python:3.12-slim）。
 
 > 本專案原名為 `docker-whisper-live`，由 [hwdsl2](https://github.com/hwdsl2) 維護。Docker 映像名稱仍為 `hwdsl2/whisper-live-server`。
 
 **功能特色：**
 
 - **即時 WebSocket 轉錄：** 轉錄即時麥克風音訊或音訊串流，並逐步回傳分段結果
+- **語音譯成英語：** 使用適合的多語言 Whisper 模型，透過 WebSocket 將語音翻譯成英語。
 - **相容 OpenAI 的 API：** 透過 `POST /v1/audio/transcriptions` 為相容的 OpenAI SDK 與應用程式提供上傳檔案轉錄。
 - **私密的本地處理：** 音訊資料保留在您的伺服器上，不傳送給第三方
 - **語音活動偵測 (VAD)：** 自動略過靜音段，實現更快、更乾淨的轉錄
@@ -121,6 +122,7 @@ curl http://您的伺服器IP:8000/v1/audio/transcriptions \
 |---|---|---|
 | **使用情境** | 轉錄完整音訊檔案 | 即時麥克風/音訊串流 |
 | **協定** | HTTP REST | WebSocket（串流）+ HTTP REST |
+| **語音譯成英語** | 檔案 REST API：`/v1/audio/translations` | WebSocket：`task: "translate"`；REST 提供檔案轉錄 |
 | **延遲** | 處理完成後回傳 JSON；SSE 逐段回傳 | 逐步回傳分段結果 |
 | **適合** | 會議錄音、上傳的音訊檔案 | 瀏覽器擷取、RTSP 串流、即時字幕 |
 | **映像大小** | ~190 MB（`:cuda` 約 3.1 GB） | ~750 MB（`:cuda` 約 4.5 GB） |
@@ -312,7 +314,7 @@ volumes:
 
 ## WebSocket 串流
 
-`9090` 連接埠的 WebSocket 端點支援即時音訊串流轉錄。用戶端傳送原始 PCM 音訊區塊，伺服器在解碼時回傳轉錄段落。
+`9090` 連接埠的 WebSocket 端點支援即時音訊串流轉錄及語音譯成英語。用戶端傳送原始 PCM 音訊區塊，伺服器在解碼時回傳文字分段。
 
 ### 協議
 
@@ -323,11 +325,13 @@ volumes:
   "uid": "unique-client-id",
   "language": "zh",
   "model": "base",
+  "task": "transcribe",
+  "audio_format": "float32",
   "use_vad": true
 }
 ```
 
-然後以二進位 WebSocket 幀形式串流傳輸 16 kHz 取樣率的 16 位元 PCM 原始音訊。伺服器回傳 JSON 轉錄事件：
+傳送音訊前，請等待伺服器回傳 `SERVER_READY` 訊息。然後以二進位 WebSocket 幀傳送 **16 kHz、單聲道 float32 PCM** 原始音訊，取樣值正規化至 [-1, 1]。不要在這些幀中傳送 WAV 檔頭或壓縮音訊。伺服器回傳 JSON 文字分段事件：
 
 ```json
 {"uid": "unique-client-id", "segments": [{"text": "您好，最近怎麼樣？", "start": 0.0, "end": 2.4, "completed": true}]}
@@ -381,11 +385,38 @@ client("audio.mp3")
 # client()
 ```
 
+### 將語音翻譯成英語
+
+重用上方 Python 範例中的 `AuthenticatedClient` 配接器及已匯出的 API 金鑰。設定 `translate=True` 即可請求 Whisper 的語音譯成英語任務：
+
+```python
+connection = AuthenticatedClient(
+    "您的伺服器IP",
+    9090,
+    lang="es",
+    translate=True,
+    model="base",
+    use_vad=True,
+)
+client = TranscriptionTeeClient([connection])
+
+# 輸入為西班牙語音訊，輸出文字為英語
+client("spanish.wav")
+```
+
+這裡的 `lang="es"` 指定的是**來源語言**，而非輸出語言。設定 `lang=None` 可自動偵測來源語言；直接使用 WebSocket 的用戶端應設定 `"language": null`。直接使用協議時，在上方已驗證的交握設定中加入 `"task": "translate"`。輸出為英語；此任務不能指定任意目標語言。
+
+此範例可使用伺服器預設的多語言 `base` 模型。WebSocket 推論使用**伺服器端 `WHISPERLIVE_MODEL`** 設定的模型；在此映像中，用戶端的 `model` 欄位不會覆寫該設定。若要使用其他模型，請修改伺服器設定，並[依設定方式重新啟動或重新建立容器](#環境變數)。請選擇 `base`、`small`、`medium` 或 `large-v3` 等非 turbo 多語言模型。僅支援英語的 `.en` 模型不支援此任務；`large-v3-turbo` / `turbo` 未針對翻譯任務訓練，不適合可靠的翻譯。
+
+翻譯功能透過 WebSocket 提供。此映像的 REST API 透過 `/v1/audio/transcriptions` 提供**檔案轉錄**，不提供 `/v1/audio/translations` 端點。
+
 ### 瀏覽器用戶端範例
 
 ```javascript
 const apiKey = "您的API金鑰";
 const ws = new WebSocket(`ws://您的伺服器IP:9090/?token=${encodeURIComponent(apiKey)}`);
+
+let serverReady = false;
 
 ws.onopen = () => {
   // 傳送設定資訊
@@ -393,22 +424,31 @@ ws.onopen = () => {
     uid: "browser-client-1",
     language: "zh",
     model: "base",
+    task: "transcribe",
+    audio_format: "float32",
     use_vad: true,
   }));
 };
 
 ws.onmessage = (event) => {
   const data = JSON.parse(event.data);
+  if (data.message === "SERVER_READY") serverReady = true;
   if (data.segments) {
     data.segments.forEach(seg => console.log(seg.text));
   }
 };
 
-// 以 ArrayBuffer 形式傳送音訊區塊（16 位元 PCM，16 kHz）
-// ws.send(audioBuffer);
+// 取樣資料須已轉換為單聲道、正規化至 [-1, 1]，並重新取樣至 16 kHz。
+function sendAudio(samples) {
+  if (!serverReady || ws.readyState !== WebSocket.OPEN) return;
+  const chunk = new Float32Array(samples);
+  ws.send(chunk.buffer);
+}
 ```
 
 ## REST API 參考
+
+翻譯功能透過 WebSocket 提供。此映像的 REST API 透過 `/v1/audio/transcriptions` 提供**檔案轉錄**，不提供 `/v1/audio/translations` 端點。
 
 `8000` 連接埠的 REST API 與 [OpenAI 音訊轉錄端點](https://developers.openai.com/api/reference/resources/audio/subresources/transcriptions/methods/create)相容。使用 OpenAI SDK 的用戶端需設定 API 基礎 URL 和自架伺服器的 API 金鑰：
 
@@ -497,7 +537,7 @@ docker exec whisper-live whisper_live_manage --downloadmodel large-v3-turbo
    docker exec whisper-live whisper_live_manage --downloadmodel large-v3-turbo
    ```
 2. 在 `whisper-live.env` 檔案中更新 `WHISPERLIVE_MODEL`。
-3. 重新啟動容器：
+3. 若使用繫結掛載的 env 檔案，請重新啟動容器；若使用 `--env-file` 或 `-e`，請重新建立容器以套用新設定：
    ```bash
    docker restart whisper-live
    ```
@@ -517,12 +557,12 @@ docker exec whisper-live whisper_live_manage --downloadmodel large-v3-turbo
 | `large-v1` | ~3 GB | ~10 GB | 舊版大型模型 |
 | `large-v2` | ~3 GB | ~10 GB | 非常高精確度 |
 | `large-v3` | ~3 GB | ~10 GB | 最高精確度 |
-| `large-v3-turbo` | ~1.6 GB | ~6 GB | 高速 + 高精確度 ⭐ |
-| `turbo` | ~1.6 GB | ~6 GB | `large-v3-turbo` 的別名 |
+| `large-v3-turbo` | ~1.6 GB | ~6 GB | 高速 + 高精確度 ⭐；僅用於轉錄 |
+| `turbo` | ~1.6 GB | ~6 GB | `large-v3-turbo` 的別名；僅用於轉錄 |
 
-> **提示：** `large-v3-turbo` 的精確度接近 `large-v3`，但資源消耗約為其一半。對於大多數正式部署，推薦從 `base` 升級到此模型。
+> **提示：** 對於轉錄，在硬體資源充足時，`large-v3-turbo` 是比 `large-v3` 更快的選擇。若要將語音翻譯成英語，請選擇 `base`、`small`、`medium` 或 `large-v3` 等非 turbo 多語言模型。
 
-記憶體數值為近似值，基於 INT8 量化（預設）。模型快取於 `/var/lib/whisper-live` Docker 資料卷中，僅需下載一次。
+RAM 數值僅供粗略規劃，不是實測需求，也不代表 GPU 顯示記憶體需求。CPU 後端使用 INT8；CUDA 後端在運算能力 7.0+ 的 GPU 上使用 FP16，在較舊的受支援 GPU 上使用 FP32。實際記憶體和顯示記憶體用量取決於模型、音訊長度及並行用戶端數量。模型快取於 `/var/lib/whisper-live` Docker 資料卷中，僅需下載一次。
 
 ## 保護你的伺服器
 
@@ -656,7 +696,7 @@ ScribeCrate Live 可作為更廣泛的自託管 AI 設定中的即時語音轉�
 
 - 基礎映像：`python:3.12-slim`（Debian）
 - 執行環境：Python 3（虛擬環境位於 `/opt/venv`）
-- STT 引擎：[WhisperLive](https://github.com/collabora/WhisperLive) + [faster-whisper](https://github.com/SYSTRAN/faster-whisper) + CTranslate2（CPU 預設 INT8，CUDA 預設 FP16）
+- STT 引擎：[WhisperLive](https://github.com/collabora/WhisperLive) + [faster-whisper](https://github.com/SYSTRAN/faster-whisper) + CTranslate2（CPU 使用 INT8，CUDA 使用 FP16/FP32）
 - VAD：透過 PyTorch（CPU 或 CUDA，自動偵測）使用 [Silero VAD](https://github.com/snakers4/silero-vad)
 - WebSocket 伺服器：Python `websockets` 函式庫
 - REST API 框架：[FastAPI](https://fastapi.tiangolo.com/) + [Uvicorn](https://www.uvicorn.org/)

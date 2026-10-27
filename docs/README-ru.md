@@ -6,13 +6,14 @@
 
 [![Статус сборки](https://github.com/hwdsl2/scribecrate-live/actions/workflows/main.yml/badge.svg)](https://github.com/hwdsl2/scribecrate-live/actions/workflows/main.yml) &nbsp;[![Docker Pulls](https://raw.githubusercontent.com/hwdsl2/badges/main/img/docker-pulls-whisper-live-server.svg)](https://hub.docker.com/r/hwdsl2/whisper-live-server) &nbsp;[![License: MIT](images/license.svg)](https://opensource.org/licenses/MIT) &nbsp;[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://selfhostedaistack.com/scribecrate-live-notebook)
 
-ScribeCrate Live представляет собой сервер транскрипции речи в реальном времени для самостоятельного размещения на базе [WhisperLive](https://github.com/collabora/WhisperLive) и [faster-whisper](https://github.com/SYSTRAN/faster-whisper). Предоставляет транскрипцию аудио с микрофона и аудиопотоков через WebSocket, а также совместимый с OpenAI REST API для аудиофайлов. Развёртывается с помощью Docker на CPU или NVIDIA GPU. Образ основан на Debian (python:3.12-slim).
+ScribeCrate Live представляет собой сервер транскрипции речи в реальном времени для самостоятельного размещения на базе [WhisperLive](https://github.com/collabora/WhisperLive) и [faster-whisper](https://github.com/SYSTRAN/faster-whisper). Предоставляет транскрипцию и перевод речи на английский через WebSocket для аудио с микрофона и аудиопотоков, а также совместимый с OpenAI REST API для транскрипции аудиофайлов. Развёртывается с помощью Docker на CPU или NVIDIA GPU. Образ основан на Debian (python:3.12-slim).
 
 > Ранее проект назывался `docker-whisper-live`. Его поддерживает [hwdsl2](https://github.com/hwdsl2). Имя Docker-образа остаётся прежним: `hwdsl2/whisper-live-server`.
 
 **Возможности:**
 
 - **Транскрипция по WebSocket в реальном времени:** транскрибирование аудио с микрофона или аудиопотоков с постепенным обновлением сегментов
+- **Перевод речи на английский:** перевод через WebSocket с подходящей многоязычной моделью Whisper.
 - **Совместимый с OpenAI API:** `POST /v1/audio/transcriptions` для транскрипции загруженных файлов из совместимых OpenAI SDK и приложений.
 - **Конфиденциальная локальная обработка:** Аудио остаётся на вашем сервере — данные не передаются третьим сторонам
 - **Определение речевой активности (VAD):** автоматически пропускает тишину для более быстрого и чистого транскрибирования
@@ -121,6 +122,7 @@ curl http://ip_вашего_сервера:8000/v1/audio/transcriptions \
 |---|---|---|
 | **Назначение** | Транскрибирование готовых аудиофайлов | Живой микрофон / потоковое аудио в реальном времени |
 | **Протокол** | HTTP REST | WebSocket (потоковый) + HTTP REST |
+| **Перевод речи на английский** | REST API для файлов: `/v1/audio/translations` | WebSocket: `task: "translate"`; REST поддерживает транскрипцию файлов |
 | **Задержка** | JSON после обработки; сегменты через SSE | Постепенные обновления сегментов |
 | **Подходит для** | Записи совещаний, загруженные аудиофайлы | Захват в браузере, RTSP-потоки, живые субтитры |
 | **Размер образа** | ~190 МБ (~3,1 ГБ для `:cuda`) | ~750 МБ (~4,5 ГБ для `:cuda`) |
@@ -308,7 +310,7 @@ volumes:
 
 ## Потоковая передача через WebSocket
 
-WebSocket-эндпоинт на порту `9090` поддерживает транскрибирование живых аудиопотоков.
+WebSocket на порту `9090` поддерживает транскрипцию и перевод речи на английский для аудиопотоков в реальном времени. Клиенты отправляют фрагменты исходного PCM-аудио и получают текстовые сегменты по мере декодирования.
 
 ### Протокол
 
@@ -319,11 +321,13 @@ WebSocket-эндпоинт на порту `9090` поддерживает тр�
   "uid": "unique-client-id",
   "language": "ru",
   "model": "base",
+  "task": "transcribe",
+  "audio_format": "float32",
   "use_vad": true
 }
 ```
 
-Затем передавайте сырое 16-битное PCM-аудио на частоте 16 кГц бинарными WebSocket-фреймами. Сервер возвращает JSON-события транскрибирования:
+Перед отправкой аудио дождитесь сообщения `SERVER_READY` от сервера. Передавайте **монофоническое PCM-аудио float32 с частотой 16 кГц** и значениями отсчётов, нормализованными в диапазон [-1, 1], в бинарных WebSocket-фреймах. Не отправляйте в этих фреймах заголовки WAV или сжатое аудио. Сервер возвращает JSON-события с текстовыми сегментами:
 
 ```json
 {"uid": "unique-client-id", "segments": [{"text": "Привет, как дела?", "start": 0.0, "end": 2.4, "completed": true}]}
@@ -377,11 +381,38 @@ client("audio.mp3")
 # client()
 ```
 
+### Перевод речи на английский
+
+Используйте адаптер `AuthenticatedClient` и экспортированный API-ключ из примера Python выше. Установите `translate=True`, чтобы запросить перевод речи на английский средствами Whisper:
+
+```python
+connection = AuthenticatedClient(
+    "ip_вашего_сервера",
+    9090,
+    lang="es",
+    translate=True,
+    model="base",
+    use_vad=True,
+)
+client = TranscriptionTeeClient([connection])
+
+# Исходное аудио на испанском, выходной текст на английском
+client("spanish.wav")
+```
+
+Здесь `lang="es"` задаёт **исходный** язык, а не язык результата. Для автоматического определения исходного языка используйте `lang=None`; при прямой работе с WebSocket укажите `"language": null`. В таком клиенте задайте `"task": "translate"` в конфигурации того же аутентифицированного соединения, показанного выше. Результат будет на английском; эта задача не позволяет выбрать произвольный целевой язык.
+
+Пример работает с многоязычной моделью `base`, используемой сервером по умолчанию. Для WebSocket сервер использует модель из **серверной настройки `WHISPERLIVE_MODEL`**; поле `model` клиента в этом образе не переопределяет её. Для другой модели измените настройку сервера и [перезапустите или пересоздайте контейнер в зависимости от способа настройки](#переменные-окружения). Выберите многоязычную модель без turbo, например `base`, `small`, `medium` или `large-v3`. Англоязычные модели `.en` не поддерживают эту задачу; `large-v3-turbo` / `turbo` не обучены для перевода и не подходят для надёжного перевода.
+
+Перевод доступен через WebSocket. REST API этого образа предоставляет **транскрипцию файлов** через `/v1/audio/transcriptions`, но не предоставляет эндпоинт `/v1/audio/translations`.
+
 ### Пример браузерного клиента
 
 ```javascript
 const apiKey = "ВАШ_API_КЛЮЧ";
 const ws = new WebSocket(`ws://ip_вашего_сервера:9090/?token=${encodeURIComponent(apiKey)}`);
+
+let serverReady = false;
 
 ws.onopen = () => {
   // Отправляем конфигурацию
@@ -389,22 +420,31 @@ ws.onopen = () => {
     uid: "browser-client-1",
     language: "ru",
     model: "base",
+    task: "transcribe",
+    audio_format: "float32",
     use_vad: true,
   }));
 };
 
 ws.onmessage = (event) => {
   const data = JSON.parse(event.data);
+  if (data.message === "SERVER_READY") serverReady = true;
   if (data.segments) {
     data.segments.forEach(seg => console.log(seg.text));
   }
 };
 
-// Отправляем аудиофрагменты как ArrayBuffer (16-бит PCM, 16 кГц)
-// ws.send(audioBuffer);
+// Отсчёты должны быть моно, нормализованы в [-1, 1] и приведены к частоте 16 кГц.
+function sendAudio(samples) {
+  if (!serverReady || ws.readyState !== WebSocket.OPEN) return;
+  const chunk = new Float32Array(samples);
+  ws.send(chunk.buffer);
+}
 ```
 
 ## REST API
+
+Перевод доступен через WebSocket. REST API этого образа предоставляет **транскрипцию файлов** через `/v1/audio/transcriptions`, но не предоставляет эндпоинт `/v1/audio/translations`.
 
 REST API на порту `8000` совместим с [эндпоинтом OpenAI для транскрибирования аудио](https://developers.openai.com/api/reference/resources/audio/subresources/transcriptions/methods/create). Для клиентов, использующих OpenAI SDK, задайте базовый URL API и API-ключ вашего сервера:
 
@@ -491,7 +531,7 @@ docker exec whisper-live whisper_live_manage --downloadmodel large-v3-turbo
    docker exec whisper-live whisper_live_manage --downloadmodel large-v3-turbo
    ```
 2. Обновите `WHISPERLIVE_MODEL` в файле `whisper-live.env`.
-3. Перезапустите контейнер:
+3. При подключении env-файла через bind mount перезапустите контейнер. При использовании `--env-file` или `-e` пересоздайте контейнер, чтобы применить новую настройку:
    ```bash
    docker restart whisper-live
    ```
@@ -511,12 +551,12 @@ docker exec whisper-live whisper_live_manage --downloadmodel large-v3-turbo
 | `large-v1` | ~3 ГБ | ~10 ГБ | Старая большая модель |
 | `large-v2` | ~3 ГБ | ~10 ГБ | Очень высокая точность |
 | `large-v3` | ~3 ГБ | ~10 ГБ | Наивысшая точность |
-| `large-v3-turbo` | ~1,6 ГБ | ~6 ГБ | Быстрая + высокая точность ⭐ |
-| `turbo` | ~1,6 ГБ | ~6 ГБ | Псевдоним для `large-v3-turbo` |
+| `large-v3-turbo` | ~1,6 ГБ | ~6 ГБ | Быстрая + высокая точность ⭐; только транскрипция |
+| `turbo` | ~1,6 ГБ | ~6 ГБ | Псевдоним для `large-v3-turbo`; только транскрипция |
 
-> **Совет:** `large-v3-turbo` обеспечивает точность, близкую к `large-v3`, при вдвое меньшем потреблении ресурсов. Для большинства производственных развёртываний это рекомендуемый вариант обновления с `base`.
+> **Совет:** Для транскрипции `large-v3-turbo` служит более быстрой альтернативой `large-v3` при достаточных ресурсах оборудования. Для перевода речи на английский выберите многоязычную модель без turbo, например `base`, `small`, `medium` или `large-v3`.
 
-Данные по памяти являются приблизительными и учитывают квантование INT8 (по умолчанию). Модели кэшируются в Docker-томе `/var/lib/whisper-live` и загружаются только один раз.
+Значения RAM приведены для грубого планирования, а не как измеренные требования или объём видеопамяти GPU. На CPU используется INT8; на CUDA используется FP16 для GPU с Compute Capability 7.0+ и FP32 для более старых поддерживаемых GPU. Фактическое потребление RAM/VRAM зависит от модели, длины аудио и числа одновременных клиентов. Модели кэшируются в Docker-томе `/var/lib/whisper-live` и загружаются только один раз.
 
 ## Защита сервера
 
@@ -650,7 +690,7 @@ ScribeCrate Live можно использовать как службу рас�
 
 - Базовый образ: `python:3.12-slim` (Debian)
 - Среда выполнения: Python 3 (виртуальное окружение в `/opt/venv`)
-- STT-движок: [WhisperLive](https://github.com/collabora/WhisperLive) + [faster-whisper](https://github.com/SYSTRAN/faster-whisper) с CTranslate2 (INT8 на CPU, FP16 на CUDA)
+- STT-движок: [WhisperLive](https://github.com/collabora/WhisperLive) + [faster-whisper](https://github.com/SYSTRAN/faster-whisper) с CTranslate2 (INT8 на CPU, FP16/FP32 на CUDA)
 - VAD: [Silero VAD](https://github.com/snakers4/silero-vad) через PyTorch (CPU или CUDA, определяется автоматически)
 - WebSocket-сервер: библиотека Python `websockets`
 - REST API: [FastAPI](https://fastapi.tiangolo.com/) + [Uvicorn](https://www.uvicorn.org/)

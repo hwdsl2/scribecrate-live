@@ -6,13 +6,14 @@
 
 [![Build Status](https://github.com/hwdsl2/scribecrate-live/actions/workflows/main.yml/badge.svg)](https://github.com/hwdsl2/scribecrate-live/actions/workflows/main.yml) &nbsp;[![Docker Pulls](https://raw.githubusercontent.com/hwdsl2/badges/main/img/docker-pulls-whisper-live-server.svg)](https://hub.docker.com/r/hwdsl2/whisper-live-server) &nbsp;[![License: MIT](docs/images/license.svg)](https://opensource.org/licenses/MIT) &nbsp;[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://selfhostedaistack.com/scribecrate-live-notebook)
 
-ScribeCrate Live is a self-hosted real-time speech-to-text server powered by [WhisperLive](https://github.com/collabora/WhisperLive) and [faster-whisper](https://github.com/SYSTRAN/faster-whisper). It provides WebSocket transcription for live microphone audio and audio streams, plus an OpenAI-compatible REST API for audio files. Deploy with Docker on CPU or an NVIDIA GPU. The image is based on Debian (python:3.12-slim).
+ScribeCrate Live is a self-hosted real-time speech-to-text server powered by [WhisperLive](https://github.com/collabora/WhisperLive) and [faster-whisper](https://github.com/SYSTRAN/faster-whisper). It provides WebSocket transcription and speech-to-English translation for live microphone audio and audio streams, plus an OpenAI-compatible REST API for audio-file transcription. Deploy with Docker on CPU or an NVIDIA GPU. The image is based on Debian (python:3.12-slim).
 
 > Previously known as `docker-whisper-live`, maintained by [hwdsl2](https://github.com/hwdsl2). The Docker image name remains `hwdsl2/whisper-live-server`.
 
 **Features:**
 
 - **Real-time WebSocket transcription:** transcribe live microphone audio or audio streams with progressive segment updates.
+- **Speech-to-English translation:** translate speech into English over WebSocket with a suitable multilingual Whisper model.
 - **OpenAI-compatible API:** `POST /v1/audio/transcriptions` for uploaded-file transcription from compatible OpenAI SDKs and apps.
 - **Private, local processing:** audio stays on your server and is not sent to third parties.
 - **Voice activity detection (VAD):** automatically skips silence for faster, cleaner transcription.
@@ -119,6 +120,7 @@ curl http://your_server_ip:8000/v1/audio/transcriptions \
 |---|---|---|
 | **Use case** | Transcribe complete audio files | Live microphone / real-time audio streaming |
 | **Protocol** | HTTP REST | WebSocket (streaming) + HTTP REST |
+| **Speech-to-English translation** | File REST API: `/v1/audio/translations` | WebSocket: `task: "translate"`; REST supports file transcription |
 | **Latency** | JSON after processing; segments via SSE | Progressive segment updates |
 | **Best for** | Meeting recordings, uploaded audio | Browser capture, RTSP streams, live captions |
 | **Image size** | ~190 MB (~3.1 GB for `:cuda`) | ~750 MB (~4.5 GB for `:cuda`) |
@@ -310,7 +312,7 @@ volumes:
 
 ## WebSocket streaming
 
-The WebSocket endpoint at port `9090` supports real-time transcription of live audio streams. Clients send raw PCM audio chunks and receive transcription segments as they are decoded.
+The WebSocket endpoint at port `9090` supports real-time transcription and speech-to-English translation of live audio streams. Clients send raw PCM audio chunks and receive text segments as they are decoded.
 
 ### Protocol
 
@@ -321,11 +323,13 @@ On connection, send a JSON configuration message first:
   "uid": "unique-client-id",
   "language": "en",
   "model": "base",
+  "task": "transcribe",
+  "audio_format": "float32",
   "use_vad": true
 }
 ```
 
-Then stream raw 16-bit PCM audio at 16 kHz sample rate as binary WebSocket frames. The server returns JSON transcription events:
+Wait for the server's `SERVER_READY` message before sending audio. Stream raw **mono float32 PCM at 16 kHz**, with sample values normalized to [-1, 1], as binary WebSocket frames. Do not send WAV headers or compressed audio in these frames. The server returns JSON text-segment events:
 
 ```json
 {"uid": "unique-client-id", "segments": [{"text": "Hello, how are you?", "start": 0.0, "end": 2.4, "completed": true}]}
@@ -379,11 +383,38 @@ client("audio.mp3")
 # client()
 ```
 
+### Translate speech into English
+
+Reuse the `AuthenticatedClient` adapter and exported API key from the Python example above. Set `translate=True` to request Whisper's speech-to-English task:
+
+```python
+connection = AuthenticatedClient(
+    "your_server_ip",
+    9090,
+    lang="es",
+    translate=True,
+    model="base",
+    use_vad=True,
+)
+client = TranscriptionTeeClient([connection])
+
+# Spanish source audio; output text is English
+client("spanish.wav")
+```
+
+Here `lang="es"` selects the **source** language, not the output language. Use `lang=None` for automatic source-language detection; raw WebSocket clients use `"language": null`. For raw clients, set `"task": "translate"` in the same authenticated handshake shown above. Output is English; this task does not select an arbitrary target language.
+
+The example works with the server's default multilingual `base` model. WebSocket inference uses the model configured by **server-side `WHISPERLIVE_MODEL`**; the client's `model` field does not override it in this image. To use another model, change the server setting and [restart or recreate the container as appropriate](#environment-variables). Choose a multilingual non-turbo model such as `base`, `small`, `medium`, or `large-v3`. English-only `.en` models do not support this task, and `large-v3-turbo` / `turbo` are not trained for reliable translation.
+
+Translation is available through WebSocket. This image's REST API provides **file transcription** at `/v1/audio/transcriptions`; it does not expose `/v1/audio/translations`.
+
 ### Browser client example
 
 ```javascript
 const apiKey = "YOUR_API_KEY";
 const ws = new WebSocket(`ws://your_server_ip:9090/?token=${encodeURIComponent(apiKey)}`);
+
+let serverReady = false;
 
 ws.onopen = () => {
   // Send configuration
@@ -391,22 +422,31 @@ ws.onopen = () => {
     uid: "browser-client-1",
     language: "en",
     model: "base",
+    task: "transcribe",
+    audio_format: "float32",
     use_vad: true,
   }));
 };
 
 ws.onmessage = (event) => {
   const data = JSON.parse(event.data);
+  if (data.message === "SERVER_READY") serverReady = true;
   if (data.segments) {
     data.segments.forEach(seg => console.log(seg.text));
   }
 };
 
-// Send audio chunks as ArrayBuffer (16-bit PCM, 16 kHz)
-// ws.send(audioBuffer);
+// Samples must already be mono, normalized to [-1, 1], and resampled to 16 kHz.
+function sendAudio(samples) {
+  if (!serverReady || ws.readyState !== WebSocket.OPEN) return;
+  const chunk = new Float32Array(samples);
+  ws.send(chunk.buffer);
+}
 ```
 
 ## REST API reference
+
+Translation is available through WebSocket. This image's REST API provides **file transcription** at `/v1/audio/transcriptions`; it does not expose `/v1/audio/translations`.
 
 The REST API at port `8000` is compatible with [OpenAI's audio transcription endpoint](https://developers.openai.com/api/reference/resources/audio/subresources/transcriptions/methods/create). For clients using the OpenAI SDK, configure the base URL and your server's API key:
 
@@ -511,7 +551,7 @@ To change the active model:
 
 2. Update `WHISPERLIVE_MODEL` in your `whisper-live.env` file (or add `-e WHISPERLIVE_MODEL=large-v3-turbo` to your `docker run` command).
 
-3. Restart the container:
+3. If using a bind-mounted env file, restart the container. With `--env-file` or `-e`, recreate it to apply the new setting:
    ```bash
    docker restart whisper-live
    ```
@@ -531,12 +571,12 @@ To change the active model:
 | `large-v1` | ~3 GB | ~10 GB | Older large model |
 | `large-v2` | ~3 GB | ~10 GB | Very high accuracy |
 | `large-v3` | ~3 GB | ~10 GB | Best accuracy |
-| `large-v3-turbo` | ~1.6 GB | ~6 GB | Fast + high accuracy ⭐ |
-| `turbo` | ~1.6 GB | ~6 GB | Alias for `large-v3-turbo` |
+| `large-v3-turbo` | ~1.6 GB | ~6 GB | Fast + high accuracy ⭐; transcription only |
+| `turbo` | ~1.6 GB | ~6 GB | Alias for `large-v3-turbo`; transcription only |
 
-> **Tip:** `large-v3-turbo` offers accuracy close to `large-v3` at roughly half the resource cost. It is the recommended upgrade path from `base` for most production deployments.
+> **Tip:** For transcription, `large-v3-turbo` is a faster alternative to `large-v3` on hardware with sufficient resources. For speech-to-English translation, choose a multilingual non-turbo model such as `base`, `small`, `medium`, or `large-v3`.
 
-RAM figures are approximate and reflect INT8 quantization (default). Models are cached in the `/var/lib/whisper-live` Docker volume and only downloaded once.
+RAM values are rough planning estimates, not measured requirements or GPU VRAM figures. The CPU backend uses INT8; the CUDA backend uses FP16 on GPUs with Compute Capability 7.0+ and FP32 on older supported GPUs. Actual RAM/VRAM use varies with model, audio length, and concurrent clients. Models are cached in the `/var/lib/whisper-live` Docker volume and only downloaded once.
 
 ## Securing your server
 
@@ -685,7 +725,7 @@ This image uses public GitHub release asset download counts for anonymous, aggre
 
 - Base image: `python:3.12-slim` (Debian)
 - Runtime: Python 3 (virtual environment at `/opt/venv`)
-- STT engine: [WhisperLive](https://github.com/collabora/WhisperLive) + [faster-whisper](https://github.com/SYSTRAN/faster-whisper) with CTranslate2 (INT8 on CPU, FP16 on CUDA)
+- STT engine: [WhisperLive](https://github.com/collabora/WhisperLive) + [faster-whisper](https://github.com/SYSTRAN/faster-whisper) with CTranslate2 (INT8 on CPU, FP16/FP32 on CUDA)
 - VAD: [Silero VAD](https://github.com/snakers4/silero-vad) via PyTorch (CPU or CUDA, auto-detected)
 - WebSocket server: Python `websockets` library
 - REST API framework: [FastAPI](https://fastapi.tiangolo.com/) + [Uvicorn](https://www.uvicorn.org/)

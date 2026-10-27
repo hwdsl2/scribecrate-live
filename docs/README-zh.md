@@ -6,13 +6,14 @@
 
 [![构建状态](https://github.com/hwdsl2/scribecrate-live/actions/workflows/main.yml/badge.svg)](https://github.com/hwdsl2/scribecrate-live/actions/workflows/main.yml) &nbsp;[![Docker Pulls](https://raw.githubusercontent.com/hwdsl2/badges/main/img/docker-pulls-whisper-live-server.svg)](https://hub.docker.com/r/hwdsl2/whisper-live-server) &nbsp;[![License: MIT](images/license.svg)](https://opensource.org/licenses/MIT) &nbsp;[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://selfhostedaistack.com/scribecrate-live-notebook)
 
-ScribeCrate Live 是一个自托管的实时语音转文字服务器，由 [WhisperLive](https://github.com/collabora/WhisperLive) 和 [faster-whisper](https://github.com/SYSTRAN/faster-whisper) 提供支持。它提供用于实时麦克风音频和音频流转录的 WebSocket 服务，以及用于音频文件转录的 OpenAI 兼容 REST API。可使用 Docker 在 CPU 或 NVIDIA GPU 上部署。镜像基于 Debian（python:3.12-slim）。
+ScribeCrate Live 是一个自托管的实时语音转文字服务器，由 [WhisperLive](https://github.com/collabora/WhisperLive) 和 [faster-whisper](https://github.com/SYSTRAN/faster-whisper) 提供支持。它通过 WebSocket 为实时麦克风音频和音频流提供转录及语音译成英语的功能，并通过 OpenAI 兼容 REST API 提供音频文件转录。可使用 Docker 在 CPU 或 NVIDIA GPU 上部署。镜像基于 Debian（python:3.12-slim）。
 
 > 本项目原名为 `docker-whisper-live`，由 [hwdsl2](https://github.com/hwdsl2) 维护。Docker 镜像名称仍为 `hwdsl2/whisper-live-server`。
 
 **功能特性：**
 
 - **实时 WebSocket 转录：** 转录实时麦克风音频或音频流，并逐步返回分段结果
+- **语音译成英语：** 使用适合的多语言 Whisper 模型，通过 WebSocket 将语音翻译成英语。
 - **兼容 OpenAI 的 API：** 通过 `POST /v1/audio/transcriptions` 为兼容的 OpenAI SDK 和应用提供上传文件转录。
 - **私密的本地处理：** 音频数据留在您的服务器上，不发送给第三方
 - **语音活动检测 (VAD)：** 自动跳过静音段，实现更快、更干净的转录
@@ -121,6 +122,7 @@ curl http://您的服务器IP:8000/v1/audio/transcriptions \
 |---|---|---|
 | **使用场景** | 转录完整音频文件 | 实时麦克风/音频流 |
 | **协议** | HTTP REST | WebSocket（流式）+ HTTP REST |
+| **语音译成英语** | 文件 REST API：`/v1/audio/translations` | WebSocket：`task: "translate"`；REST 提供文件转录 |
 | **延迟** | 处理完成后返回 JSON；SSE 逐段返回 | 逐步返回分段结果 |
 | **适合** | 会议录音、上传的音频文件 | 浏览器采集、RTSP 流、实时字幕 |
 | **镜像大小** | ~190 MB（`:cuda` 约 3.1 GB） | ~750 MB（`:cuda` 约 4.5 GB） |
@@ -312,7 +314,7 @@ volumes:
 
 ## WebSocket 流式传输
 
-`9090` 端口的 WebSocket 接口支持实时音频流转录。客户端发送原始 PCM 音频块，服务器在解码时返回转录段落。
+`9090` 端口的 WebSocket 接口支持实时音频流转录及语音译成英语。客户端发送原始 PCM 音频块，服务器在解码时返回文本分段。
 
 ### 协议
 
@@ -323,11 +325,13 @@ volumes:
   "uid": "unique-client-id",
   "language": "zh",
   "model": "base",
+  "task": "transcribe",
+  "audio_format": "float32",
   "use_vad": true
 }
 ```
 
-然后以二进制 WebSocket 帧形式流式传输 16 kHz 采样率的 16 位 PCM 原始音频。服务器返回 JSON 转录事件：
+发送音频前，请等待服务器返回 `SERVER_READY` 消息。然后以二进制 WebSocket 帧发送 **16 kHz、单声道 float32 PCM** 原始音频，采样值归一化至 [-1, 1]。不要在这些帧中发送 WAV 文件头或压缩音频。服务器返回 JSON 文本分段事件：
 
 ```json
 {"uid": "unique-client-id", "segments": [{"text": "您好，最近怎么样？", "start": 0.0, "end": 2.4, "completed": true}]}
@@ -381,11 +385,38 @@ client("audio.mp3")
 # client()
 ```
 
+### 将语音翻译成英语
+
+复用上方 Python 示例中的 `AuthenticatedClient` 适配器和已导出的 API 密钥。设置 `translate=True` 即可请求 Whisper 的语音译成英语任务：
+
+```python
+connection = AuthenticatedClient(
+    "您的服务器IP",
+    9090,
+    lang="es",
+    translate=True,
+    model="base",
+    use_vad=True,
+)
+client = TranscriptionTeeClient([connection])
+
+# 输入为西班牙语音频，输出文本为英语
+client("spanish.wav")
+```
+
+这里的 `lang="es"` 指定的是**源语言**，而非输出语言。设置 `lang=None` 可自动检测源语言；直接使用 WebSocket 的客户端应设置 `"language": null`。直接使用协议时，在上方已认证的握手配置中设置 `"task": "translate"`。输出为英语；此任务不能指定任意目标语言。
+
+此示例可使用服务器默认的多语言 `base` 模型。WebSocket 推理使用**服务器端 `WHISPERLIVE_MODEL`** 配置的模型；在此镜像中，客户端的 `model` 字段不会覆盖该配置。若要使用其他模型，请修改服务器配置，并[按配置方式重启或重新创建容器](#环境变量)。请选择 `base`、`small`、`medium` 或 `large-v3` 等非 turbo 多语言模型。仅支持英语的 `.en` 模型不支持此任务；`large-v3-turbo` / `turbo` 未针对翻译任务训练，不适合可靠的翻译。
+
+翻译功能通过 WebSocket 提供。此镜像的 REST API 通过 `/v1/audio/transcriptions` 提供**文件转录**，不提供 `/v1/audio/translations` 端点。
+
 ### 浏览器客户端示例
 
 ```javascript
 const apiKey = "您的API密钥";
 const ws = new WebSocket(`ws://您的服务器IP:9090/?token=${encodeURIComponent(apiKey)}`);
+
+let serverReady = false;
 
 ws.onopen = () => {
   // 发送配置信息
@@ -393,22 +424,31 @@ ws.onopen = () => {
     uid: "browser-client-1",
     language: "zh",
     model: "base",
+    task: "transcribe",
+    audio_format: "float32",
     use_vad: true,
   }));
 };
 
 ws.onmessage = (event) => {
   const data = JSON.parse(event.data);
+  if (data.message === "SERVER_READY") serverReady = true;
   if (data.segments) {
     data.segments.forEach(seg => console.log(seg.text));
   }
 };
 
-// 以 ArrayBuffer 形式发送音频块（16 位 PCM，16 kHz）
-// ws.send(audioBuffer);
+// 采样数据须已转换为单声道、归一化至 [-1, 1]，并重采样至 16 kHz。
+function sendAudio(samples) {
+  if (!serverReady || ws.readyState !== WebSocket.OPEN) return;
+  const chunk = new Float32Array(samples);
+  ws.send(chunk.buffer);
+}
 ```
 
 ## REST API 参考
+
+翻译功能通过 WebSocket 提供。此镜像的 REST API 通过 `/v1/audio/transcriptions` 提供**文件转录**，不提供 `/v1/audio/translations` 端点。
 
 `8000` 端口的 REST API 与 [OpenAI 音频转录接口](https://developers.openai.com/api/reference/resources/audio/subresources/transcriptions/methods/create)兼容。使用 OpenAI SDK 的客户端需配置 API 基础 URL 和自托管服务器的 API 密钥：
 
@@ -513,7 +553,7 @@ docker exec whisper-live whisper_live_manage --downloadmodel large-v3-turbo
 
 2. 在 `whisper-live.env` 文件中更新 `WHISPERLIVE_MODEL`。
 
-3. 重启容器：
+3. 如果使用绑定挂载的 env 文件，请重启容器；如果使用 `--env-file` 或 `-e`，请重新创建容器以应用新设置：
    ```bash
    docker restart whisper-live
    ```
@@ -533,12 +573,12 @@ docker exec whisper-live whisper_live_manage --downloadmodel large-v3-turbo
 | `large-v1` | ~3 GB | ~10 GB | 旧版大型模型 |
 | `large-v2` | ~3 GB | ~10 GB | 非常高精度 |
 | `large-v3` | ~3 GB | ~10 GB | 最高精度 |
-| `large-v3-turbo` | ~1.6 GB | ~6 GB | 高速 + 高精度 ⭐ |
-| `turbo` | ~1.6 GB | ~6 GB | `large-v3-turbo` 的别名 |
+| `large-v3-turbo` | ~1.6 GB | ~6 GB | 高速 + 高精度 ⭐；仅用于转录 |
+| `turbo` | ~1.6 GB | ~6 GB | `large-v3-turbo` 的别名；仅用于转录 |
 
-> **提示：** `large-v3-turbo` 的精度接近 `large-v3`，但资源消耗约为其一半。对于大多数生产环境，推荐从 `base` 升级到此模型。
+> **提示：** 对于转录，在硬件资源充足时，`large-v3-turbo` 是比 `large-v3` 更快的选择。若要将语音翻译成英语，请选择 `base`、`small`、`medium` 或 `large-v3` 等非 turbo 多语言模型。
 
-内存数据为近似值，基于 INT8 量化（默认）。模型缓存在 `/var/lib/whisper-live` Docker 数据卷中，只需下载一次。
+RAM 数值仅供粗略规划，不是实测需求，也不代表 GPU 显存需求。CPU 后端使用 INT8；CUDA 后端在计算能力 7.0+ 的 GPU 上使用 FP16，在更旧的受支持 GPU 上使用 FP32。实际内存和显存占用取决于模型、音频长度及并发客户端数量。模型缓存在 `/var/lib/whisper-live` Docker 数据卷中，只需下载一次。
 
 ## 保护你的服务器
 
@@ -687,7 +727,7 @@ ScribeCrate Live 可作为更广泛的自托管 AI 设置中的实时语音转�
 
 - 基础镜像：`python:3.12-slim`（Debian）
 - 运行时：Python 3（虚拟环境位于 `/opt/venv`）
-- STT 引擎：[WhisperLive](https://github.com/collabora/WhisperLive) + [faster-whisper](https://github.com/SYSTRAN/faster-whisper) + CTranslate2（CPU 默认 INT8，CUDA 默认 FP16）
+- STT 引擎：[WhisperLive](https://github.com/collabora/WhisperLive) + [faster-whisper](https://github.com/SYSTRAN/faster-whisper) + CTranslate2（CPU 使用 INT8，CUDA 使用 FP16/FP32）
 - VAD：通过 PyTorch（CPU 或 CUDA，自动检测）使用 [Silero VAD](https://github.com/snakers4/silero-vad)
 - WebSocket 服务器：Python `websockets` 库
 - REST API 框架：[FastAPI](https://fastapi.tiangolo.com/) + [Uvicorn](https://www.uvicorn.org/)
