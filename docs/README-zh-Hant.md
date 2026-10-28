@@ -191,18 +191,18 @@ docker image tag quay.io/hwdsl2/whisper-live-server hwdsl2/whisper-live-server
 
 | 變數 | 說明 | 預設值 |
 |---|---|---|
-| `WHISPERLIVE_MODEL` | 使用的 Whisper 模型。請參閱[模型清單](#切換模型)。 | `base` |
-| `WHISPERLIVE_LANGUAGE` | 預設轉錄語言。使用 BCP-47 語言代碼（如 `zh`、`en`、`ja`）或 `auto` 自動偵測。 | `auto` |
+| `WHISPERLIVE_MODEL` | WebSocket 轉錄/翻譯使用的模型，也是 REST 的預設模型。請參閱[模型清單](#切換模型)。 | `base` |
 | `WHISPERLIVE_PORT` | 即時串流用戶端的 WebSocket 連接埠（1–65535）。 | `9090` |
 | `WHISPERLIVE_REST_PORT` | OpenAI 相容 REST API 的 HTTP 連接埠（1–65535）。 | `8000` |
 | `WHISPERLIVE_MAX_CLIENTS` | 最大同時 WebSocket 用戶端連線數。 | `4` |
 | `WHISPERLIVE_MAX_CONNECTION_TIME` | WebSocket 最大連線時長（秒）。超過此時長的用戶端將被自動斷線。 | `600` |
-| `WHISPERLIVE_USE_VAD` | 啟用語音活動偵測。設為 `true` 時自動偵測並略過靜音段。設為 `false` 持續處理所有音訊。 | `true` |
 | `WHISPERLIVE_THREADS` | 推理使用的 CPU 執行緒數。設為實體核心數可獲得最佳延遲。 | `2` |
 | `WHISPERLIVE_API_KEY` | 選用 API 金鑰。新持久化安裝會自動產生。REST 轉錄請求須包含 `Authorization: Bearer <key>`；WebSocket 用戶端可使用 `?token=<key>`。明確設定為空可停用驗證。 | 新持久化安裝自動產生 |
 | `WHISPERLIVE_LOG_LEVEL` | 記錄層級：`DEBUG`、`INFO`、`WARNING`、`ERROR`、`CRITICAL`。 | `INFO` |
 | `WHISPERLIVE_LOCAL_ONLY` | 設為任意非空值（如 `true`）時，禁止所有 HuggingFace 模型下載。適用於預先快取模型的離線或隔離網路部署。 | *（未設定）* |
 | `WHISPERLIVE_DISABLE_USAGE_COUNTS` | 設為 `1` 可停用匿名彙總使用計數。 | *（未設定）* |
+
+WebSocket 用戶端在握手中設定來源語言 `language`（`null` 表示自動偵測）和語音活動偵測 `use_vad`（`true` 啟用，`false` 停用）。REST 用戶端透過請求中的 `language` 指定來源語言，省略時自動偵測。`WHISPERLIVE_LANGUAGE` 和 `WHISPERLIVE_USE_VAD` 只影響啟動日誌中的顯示值，不控制推論設定。
 
 **注意：** 在 `env` 檔案中，值可用單引號括起，例如 `VAR='value'`。`=` 兩側不要有空格。如更改 `WHISPERLIVE_PORT` 或 `WHISPERLIVE_REST_PORT`，請相應更新 `docker run` 指令中的 `-p` 參數。
 

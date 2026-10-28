@@ -189,18 +189,18 @@ This Docker image uses the following variables, that can be declared in an `env`
 
 | Variable | Description | Default |
 |---|---|---|
-| `WHISPERLIVE_MODEL` | Whisper model to use. See [model table](#switching-models) for options. | `base` |
-| `WHISPERLIVE_LANGUAGE` | Default transcription language. BCP-47 code (e.g. `en`, `fr`, `de`, `zh`, `ja`) or `auto` to autodetect. | `auto` |
+| `WHISPERLIVE_MODEL` | Whisper model for WebSocket transcription/translation and the REST default. See [model table](#switching-models) for options. | `base` |
 | `WHISPERLIVE_PORT` | WebSocket port for real-time streaming clients (1–65535). | `9090` |
 | `WHISPERLIVE_REST_PORT` | HTTP port for the OpenAI-compatible REST API (1–65535). | `8000` |
 | `WHISPERLIVE_MAX_CLIENTS` | Maximum number of simultaneous WebSocket client connections. | `4` |
 | `WHISPERLIVE_MAX_CONNECTION_TIME` | Maximum WebSocket connection duration in seconds. Clients exceeding this are disconnected. | `600` |
-| `WHISPERLIVE_USE_VAD` | Voice Activity Detection default. For the `faster_whisper` backend, VAD is controlled per WebSocket client via the connection handshake `use_vad` field. | `true` |
 | `WHISPERLIVE_THREADS` | CPU threads for inference. Set to the number of physical cores for best latency. | `2` |
 | `WHISPERLIVE_LOG_LEVEL` | Log level: `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`. | `INFO` |
 | `WHISPERLIVE_API_KEY` | Optional API key. Fresh persistent installs auto-generate one. REST transcription requests must include `Authorization: Bearer <key>`; WebSocket clients can use `?token=<key>`. Set explicitly empty to disable authentication. | Auto-generated for fresh persistent installs |
 | `WHISPERLIVE_LOCAL_ONLY` | When set to any non-empty value (e.g. `true`), disables all HuggingFace model downloads. For offline or air-gapped deployments with pre-cached models. | *(not set)* |
 | `WHISPERLIVE_DISABLE_USAGE_COUNTS` | Set to `1` to disable anonymous aggregate usage counts. | *(not set)* |
+
+WebSocket clients set the source `language` (`null` for detection) and `use_vad` (`true` to enable VAD, `false` to disable it) in the handshake. REST clients set the request's `language` or omit it for detection. `WHISPERLIVE_LANGUAGE` and `WHISPERLIVE_USE_VAD` only affect startup-log values, not inference settings.
 
 **Note:** In your `env` file, you may enclose values in single quotes, e.g. `VAR='value'`. Do not add spaces around `=`. If you change `WHISPERLIVE_PORT` or `WHISPERLIVE_REST_PORT`, update the `-p` flags in the `docker run` command accordingly.
 
