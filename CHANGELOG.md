@@ -2,6 +2,34 @@
 
 Notable changes to ScribeCrate Live are documented here.
 
+## 2026-10-28
+
+### Fixed
+
+- Corrected client language/VAD and server-selected model guidance;
+  `WHISPERLIVE_LANGUAGE` and `WHISPERLIVE_USE_VAD` only affect startup logs.
+
+## 2026-10-27
+
+### Changed
+
+- Documented existing WebSocket speech-to-English translation and suitable
+  multilingual non-turbo models; REST remains file transcription.
+
+### Fixed
+
+- Corrected WebSocket examples to declare the task and mono float32 PCM at
+  16 kHz, and wait for server readiness before sending audio.
+- Clarified approximate RAM estimates, GPU VRAM use, and CPU INT8 versus
+  CUDA FP16/FP32 precision.
+
+## 2026-10-26
+
+### Changed
+
+- The Colab demo now defaults to multilingual `small`; the Docker default
+  remains `base`.
+
 ## 2026-10-24
 
 Release: `2026.10.2`
