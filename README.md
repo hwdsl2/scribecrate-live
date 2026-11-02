@@ -24,7 +24,7 @@ ScribeCrate Live is a self-hosted real-time speech-to-text server powered by [Wh
 
 Also available as part of the [Self-Hosted AI Stack](https://github.com/hwdsl2/self-hosted-ai-stack), which deploys a complete self-hosted AI stack with a single command.
 
-> 📘 [The Self-Hosted AI Builder’s Guide](https://books2read.com/aiguide?store=amazon) is a practical guide to building, securing, and operating your own private AI stack.
+> 📘 **The Self-Hosted AI Builder’s Guide** ([ebook](https://books2read.com/aiguide?store=amazon) · [paperback](https://books2read.com/aiguide?store=amazon-paperback&format=PAPERBACK)) is a practical guide to building, securing, and operating your own private AI stack.
 
 **Try it online:** [Open in Colab](https://selfhostedaistack.com/scribecrate-live-notebook) (no Docker or local installation required)
 
