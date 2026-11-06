@@ -126,7 +126,7 @@ curl http://your_server_ip:8000/v1/audio/transcriptions \
 | **Speech-to-English translation** | File REST API: `/v1/audio/translations` | WebSocket: `task: "translate"`; REST supports file transcription |
 | **Latency** | JSON after processing; segments via SSE | Progressive segment updates |
 | **Best for** | Meeting recordings, uploaded audio | Browser capture, RTSP streams, live captions |
-| **Image size** | ~190 MB (~3.1 GB for `:cuda`) | ~750 MB (~4.5 GB for `:cuda`) |
+| **Image size** | ~190 MB (~3.1 GB for `:cuda`) | ~580 MB (~4.3 GB for `:cuda`) |
 
 ## Community
 

@@ -128,7 +128,7 @@ curl http://您的服务器IP:8000/v1/audio/transcriptions \
 | **语音译成英语** | 文件 REST API：`/v1/audio/translations` | WebSocket：`task: "translate"`；REST 提供文件转录 |
 | **延迟** | 处理完成后返回 JSON；SSE 逐段返回 | 逐步返回分段结果 |
 | **适合** | 会议录音、上传的音频文件 | 浏览器采集、RTSP 流、实时字幕 |
-| **镜像大小** | ~190 MB（`:cuda` 约 3.1 GB） | ~750 MB（`:cuda` 约 4.5 GB） |
+| **镜像大小** | ~190 MB（`:cuda` 约 3.1 GB） | ~580 MB（`:cuda` 约 4.3 GB） |
 
 ## 社区
 
