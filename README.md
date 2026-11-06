@@ -22,17 +22,11 @@ ScribeCrate Live is a self-hosted real-time speech-to-text server powered by [Wh
 - **Offline operation:** run without internet access using pre-cached models (`WHISPERLIVE_LOCAL_ONLY`).
 - **Automated builds:** images are automatically built and published through [GitHub Actions](https://github.com/hwdsl2/scribecrate-live/actions).
 
+**Try it online:** [Open in Colab](https://selfhostedaistack.com/scribecrate-live-notebook) (no Docker or local installation required)
+
 Also available as part of the [Self-Hosted AI Stack](https://github.com/hwdsl2/self-hosted-ai-stack), which deploys a complete self-hosted AI stack with a single command.
 
 > 📘 **The Self-Hosted AI Builder’s Guide** ([ebook](https://books2read.com/aiguide?store=amazon) · [paperback](https://books2read.com/aiguide?store=amazon-paperback&format=PAPERBACK)) is a practical guide to building, securing, and operating your own private AI stack.
-
-**Try it online:** [Open in Colab](https://selfhostedaistack.com/scribecrate-live-notebook) (no Docker or local installation required)
-
-**Related AI services:**
-
-- **Voice:** [ScribeCrate](https://github.com/hwdsl2/scribecrate), [SpeakCrate](https://github.com/hwdsl2/speakcrate)
-- **Documents & search:** [ParseCrate](https://github.com/hwdsl2/parsecrate), [EmbedCrate](https://github.com/hwdsl2/embedcrate)
-- **Models & gateways:** [InferCrate](https://github.com/hwdsl2/infercrate), [GatewayCrate](https://github.com/hwdsl2/gatewaycrate), [UplinkCrate](https://github.com/hwdsl2/uplinkcrate)
 
 ## Quick start
 
@@ -719,6 +713,12 @@ Your downloaded models are preserved in the `whisper-live-data` volume.
 ScribeCrate Live can be used as the real-time speech-to-text service in a broader self-hosted AI setup.
 
 For full and lightweight Docker Compose stacks, manual `docker run` examples, and voice/RAG/MCP pipeline examples with SpeakCrate, EmbedCrate, GatewayCrate, InferCrate, ParseCrate, and UplinkCrate, see [Self-Hosted AI Stack](https://github.com/hwdsl2/self-hosted-ai-stack).
+
+**Related AI services:**
+
+- **Voice:** [ScribeCrate](https://github.com/hwdsl2/scribecrate), [SpeakCrate](https://github.com/hwdsl2/speakcrate)
+- **Documents & search:** [ParseCrate](https://github.com/hwdsl2/parsecrate), [EmbedCrate](https://github.com/hwdsl2/embedcrate)
+- **Models & gateways:** [InferCrate](https://github.com/hwdsl2/infercrate), [GatewayCrate](https://github.com/hwdsl2/gatewaycrate), [UplinkCrate](https://github.com/hwdsl2/uplinkcrate)
 
 ## Usage counts
 
