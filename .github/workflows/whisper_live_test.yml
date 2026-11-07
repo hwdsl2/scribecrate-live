@@ -23,6 +23,8 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
+      - name: Test usage reporting offline
+        run: python3 .github/workflows/tests/test_usage_counts.py -v
       - name: Test
         run: |
           [ ! -x /usr/bin/docker ] && exit 1
