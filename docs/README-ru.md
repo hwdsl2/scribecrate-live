@@ -26,7 +26,7 @@ ScribeCrate Live представляет собой сервер транскр
 
 Также доступен в составе [Self-Hosted AI Stack](https://github.com/hwdsl2/self-hosted-ai-stack/blob/main/docs/README-ru.md), который развёртывает полный AI-стек на собственном сервере одной командой.
 
-> 📘 **The Self-Hosted AI Builder’s Guide** ([электронная книга](https://books2read.com/aiguide?store=amazon) · [книга в мягкой обложке](https://books2read.com/aiguide?store=amazon-paperback&format=PAPERBACK)): практическое руководство по созданию, защите и эксплуатации собственного приватного ИИ-стека.
+> 📘 **The Self-Hosted AI Builder’s Guide** ([Kindle](https://books2read.com/aiguide?store=amazon) · [Google Play](https://books2read.com/aiguide?store=google) · [книга в мягкой обложке](https://books2read.com/aiguide?store=amazon-paperback&format=PAPERBACK)): практическое руководство по созданию, защите и эксплуатации собственного приватного ИИ-стека.
 
 ## Быстрый старт
 
