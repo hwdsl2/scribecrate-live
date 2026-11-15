@@ -12,7 +12,7 @@ jobs:
     strategy:
       matrix:
         runner: [ubuntu-24.04]
-        test_id: [no-env, with-env, with-key, empty-key, existing-no-key]
+        test_id: [no-env, with-env, with-key, with-file, empty-key, existing-no-key]
         include:
           - runner: ubuntu-24.04-arm
             test_id: with-key
@@ -53,6 +53,7 @@ jobs:
           set -x
 
           docker build -t whisper-live-test .
+          python3 .github/workflows/tests/check_secret_mounts.py docker whisper-live-test
 
           if [ "$TEST_ID" = "existing-no-key" ]; then
             docker volume create whisper-live-test-data
@@ -94,6 +95,21 @@ jobs:
               -p 127.0.0.1:9090:9090/tcp \
               -p 127.0.0.1:8000:8000/tcp \
               -d whisper-live-test
+          elif [ "$TEST_ID" = "with-file" ]; then
+            printf '%s\r\n' test-whisperlive-key > "$test_dir/api-key"
+            chmod 644 "$test_dir/api-key"
+            printf '%s\n' WHISPERLIVE_API_KEY_FILE=/run/secrets/api-key > "$test_dir/service.env"
+            docker run \
+              --name "$TEST_ID" \
+              --restart=always \
+              -e WHISPERLIVE_DISABLE_USAGE_COUNTS=1 \
+              -v whisper-live-test-data:/var/lib/whisper-live \
+              -e WHISPERLIVE_MODEL=tiny \
+              -v "$test_dir/api-key:/run/secrets/api-key:ro" \
+              -v "$test_dir/service.env:/whisper-live.env:ro" \
+              -p 127.0.0.1:9090:9090/tcp \
+              -p 127.0.0.1:8000:8000/tcp \
+              -d whisper-live-test
           elif [ "$TEST_ID" = "empty-key" ]; then
             docker run \
               --name "$TEST_ID" \
@@ -130,11 +146,21 @@ jobs:
             i=$((i + 1))
           done
 
+          if [ "$TEST_ID" = "with-file" ]; then
+            active_key=$(docker exec "$TEST_ID" whisper_live_manage --getkey)
+            [ "$active_key" = test-whisperlive-key ] || { echo "Active file key mismatch"; exit 1; }
+            docker exec "$TEST_ID" test ! -f /var/lib/whisper-live/.api_key
+            docker exec "$TEST_ID" test ! -f /var/lib/whisper-live/.auto_api_key_created
+            printf '%s' synthetic-inactive-key > "$test_dir/api-key"
+            active_key=$(docker exec "$TEST_ID" whisper_live_manage --getkey)
+            [ "$active_key" = test-whisperlive-key ] || { echo "Helper reread inactive source"; exit 1; }
+          fi
+
           # Build optional auth header args
           set +x
           whisper_live_curl_args=()
           whisper_live_key=""
-          if [ "$TEST_ID" = "with-key" ]; then
+          if { [ "$TEST_ID" = "with-key" ] || [ "$TEST_ID" = "with-file" ]; }; then
             whisper_live_key=test-whisperlive-key
             whisper_live_curl_args=(-H "Authorization: Bearer test-whisperlive-key")
           elif [ "$TEST_ID" = "empty-key" ] || [ "$TEST_ID" = "existing-no-key" ]; then
